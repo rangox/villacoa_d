@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Estado de Cuenta - Villacoa</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- html2pdf.js (Librería para exportar vistas completas a PDF) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Estilos de Impresión para el Recibo */
+        @media print {
+            body { margin: 0; padding: 0; background: white; }
+            body > *:not(#receiptModal) { display: none !important; }
+            #receiptModal { position: absolute; left: 0; top: 0; width: 100%; display: block !important; background: transparent; }
+            #receiptModalContent { box-shadow: none !important; width: 100%; transform: none !important; height: auto !important; overflow: visible !important; }
+            #printable-receipt { width: 100%; box-shadow: none !important; border: none !important; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-brand-900 text-white flex-shrink-0 hidden md:flex flex-col shadow-xl z-20">
+        <div class="p-6 flex items-center gap-3 border-b border-brand-600/30">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-500 to-cyan-400 flex items-center justify-center shadow-lg">
+                <i class="fa-solid fa-building text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-wide">VILLACOA</h1>
+                <p class="text-xs text-brand-100 opacity-80">Gestión Residencial</p>
+            </div>
+        </div>
+        <nav class="flex-1 py-6 px-4 space-y-2">
+            <a href="#" id="nav-dashboard" onclick="switchTab('dashboard')" class="flex items-center gap-3 px-4 py-3 bg-brand-600/40 rounded-xl text-white transition-colors border border-brand-500/30">
+                <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+                <span class="font-medium">Dashboard</span>
+            </a>
+            <a href="#" id="nav-estados" onclick="switchTab('estados')" class="flex items-center gap-3 px-4 py-3 text-brand-100 hover:bg-brand-600/20 rounded-xl transition-colors">
+                <i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>
+                <span class="font-medium">Estados de Cuenta</span>
+            </a>
+            <a href="#" id="nav-propietarios" onclick="switchTab('propietarios')" class="flex items-center gap-3 px-4 py-3 text-brand-100 hover:bg-brand-600/20 rounded-xl transition-colors">
+                <i class="fa-solid fa-users w-5 text-center"></i>
+                <span class="font-medium">Propietarios</span>
+            </a>
+            <a href="#" id="nav-pagos" onclick="switchTab('pagos')" class="flex items-center gap-3 px-4 py-3 text-brand-100 hover:bg-brand-600/20 rounded-xl transition-colors">
+                <i class="fa-solid fa-hand-holding-dollar w-5 text-center"></i>
+                <span class="font-medium">Pagos Recibidos</span>
+            </a>
+            <a href="#" id="nav-servicios" onclick="switchTab('servicios')" class="flex items-center gap-3 px-4 py-3 text-brand-100 hover:bg-brand-600/20 rounded-xl transition-colors">
+                <i class="fa-solid fa-building-circle-check w-5 text-center"></i>
+                <span class="font-medium">Pagos Edificio</span>
+            </a>
+            <a href="#" id="nav-configuracion" onclick="switchTab('configuracion')" class="flex items-center gap-3 px-4 py-3 text-brand-100 hover:bg-brand-600/20 rounded-xl transition-colors">
+                <i class="fa-solid fa-gear w-5 text-center"></i>
+                <span class="font-medium">Configuración</span>
+            </a>
+        </nav>
+        <div class="p-4 border-t border-brand-600/30 text-xs text-center text-brand-100/60">
+            Actualizado al<br>12 de Julio de 2026
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+        
+        <!-- Topbar -->
+        <header class="bg-white h-20 shadow-sm flex items-center justify-between px-6 lg:px-10 z-10 flex-shrink-0">
+            <div class="flex items-center gap-4">
+                <button class="md:hidden text-slate-500 hover:text-brand-600">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <div>
+                    <h2 id="header-title" class="text-2xl font-bold text-slate-800">Resumen Financiero</h2>
+                    <p id="header-subtitle" class="text-sm text-slate-500">Estado de cuenta general de la comunidad.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-5">
+                <div class="relative">
+                    <button class="text-slate-400 hover:text-brand-600 transition-colors">
+                        <i class="fa-solid fa-bell text-xl"></i>
+                    </button>
+                    <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
+                </div>
+                <div class="h-10 w-10 rounded-full bg-slate-200 border-2 border-brand-500 overflow-hidden cursor-pointer">
+                    <img src="https://placehold.co/100x100/e2e8f0/475569?text=AD" alt="Admin" class="w-full h-full object-cover">
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto p-6 lg:p-10 space-y-8 bg-slate-50/50 pb-24">
+            
+            <!-- VISTA: DASHBOARD PRINCIPAL -->
+            <div id="view-dashboard" class="space-y-8 block">
+            
+            <!-- Bank Info Banner -->
+            <div class="bg-brand-900 rounded-2xl p-6 shadow-md text-white flex flex-col md:flex-row justify-between items-center gap-4 relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
+                <div class="relative z-10 flex items-center gap-4">
+                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl backdrop-blur-sm shadow-inner">
+                        <i class="fa-solid fa-building-columns"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg">Banco Exterior - Cuenta Corriente</h3>
+                        <p class="text-brand-100 text-sm font-mono mt-1 tracking-wider">0115-004806-048-0034493</p>
+                    </div>
+                </div>
+                <div class="relative z-10 text-left md:text-right text-sm text-brand-100 space-y-0.5">
+                    <p><span class="opacity-70">Titular:</span> Residencias Villacoa</p>
+                    <p><span class="opacity-70">RIF:</span> J-31455419-0</p>
+                    <p><span class="opacity-70">Email:</span> residenciasvillacoa@gmail.com</p>
+                </div>
+            </div>
+
+            <!-- KPIs / Resumen -->
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                <!-- KPI 1 -->
+                <div class="glass-card bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-emerald-50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out z-0"></div>
+                    <div class="relative z-10 flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 mb-1">Total Recaudado (Julio)</p>
+                            <h3 class="text-3xl font-bold text-slate-800" id="kpi-recaudado">$0</h3>
+                            <div class="flex items-center gap-1 mt-2 text-sm text-emerald-600 font-medium">
+                                <i class="fa-solid fa-arrow-trend-up"></i>
+                                <span>+12.5% mes anterior</span>
+                            </div>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shadow-inner">
+                            <i class="fa-solid fa-wallet"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI 2 -->
+                <div class="glass-card bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-rose-50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out z-0"></div>
+                    <div class="relative z-10 flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 mb-1">Deuda Total Pendiente</p>
+                            <h3 class="text-3xl font-bold text-slate-800" id="kpi-deuda">$0</h3>
+                            <div class="flex items-center gap-1 mt-2 text-sm text-rose-500 font-medium">
+                                <i class="fa-solid fa-circle-exclamation"></i>
+                                <span id="kpi-morosos-count">0 apartamentos morosos</span>
+                            </div>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl shadow-inner">
+                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI 3 -->
+                <div class="glass-card bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out z-0"></div>
+                    <div class="relative z-10 flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 mb-1">Índice de Solvencia</p>
+                            <h3 class="text-3xl font-bold text-slate-800" id="kpi-solvencia">0%</h3>
+                            <div class="flex items-center gap-1 mt-2 text-sm text-blue-600 font-medium">
+                                <i class="fa-solid fa-chart-line"></i>
+                                <span>Meta: 90%</span>
+                            </div>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl shadow-inner">
+                            <i class="fa-solid fa-percent"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI 4 -->
+                <div class="glass-card bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-amber-50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out z-0"></div>
+                    <div class="relative z-10 flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 mb-1">Fondo de Reserva</p>
+                            <h3 class="text-3xl font-bold text-slate-800">$12,450</h3>
+                            <div class="flex items-center gap-1 mt-2 text-sm text-amber-600 font-medium">
+                                <i class="fa-solid fa-vault"></i>
+                                <span>Disponible en banco</span>
+                            </div>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl shadow-inner">
+                            <i class="fa-solid fa-piggy-bank"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <!-- Bar Chart: Ingresos vs Egresos -->
+                <div class="xl:col-span-2 glass-card bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-bold text-slate-800">Flujo de Caja Mensual (2026)</h3>
+                        <button class="p-2 text-slate-400 hover:text-brand-600"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                    </div>
+                    <div class="h-72 w-full">
+                        <canvas id="cashflowChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Doughnut Chart: Distribución de Gastos -->
+                <div class="glass-card bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-bold text-slate-800">Gastos por Categoría</h3>
+                        <button class="p-2 text-slate-400 hover:text-brand-600"><i class="fa-solid fa-download"></i></button>
+                    </div>
+                    <div class="h-64 w-full flex justify-center relative">
+                        <canvas id="expensesChart"></canvas>
+                        <!-- Center text overlay for doughnut -->
+                        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
+                            <span class="text-xs text-slate-400">Total Gastos</span>
+                            <span class="text-xl font-bold text-slate-700">$4,210</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table Section -->
+            <div class="glass-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+                <!-- Table Header & Controls -->
+                <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800">Detalle por Propietario / Apartamento</h3>
+                        <p class="text-sm text-slate-500">Gestión de cuotas y estado de solvencia actual.</p>
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                        <!-- Search -->
+                        <div class="relative w-full sm:w-64">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa-solid fa-search text-slate-400"></i>
+                            </div>
+                            <input type="text" id="searchInput" class="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 sm:text-sm transition-colors" placeholder="Buscar Apto o Propietario...">
+                        </div>
+                        
+                        <!-- Filter -->
+                        <select id="statusFilter" class="block w-full sm:w-auto pl-3 pr-10 py-2 border border-slate-200 rounded-xl leading-5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 sm:text-sm cursor-pointer text-slate-600">
+                            <option value="todos">Todos los Estados</option>
+                            <option value="solvente">Solventes</option>
+                            <option value="moroso">Morosos</option>
+                        </select>
+                        
+                        <!-- Export -->
+                        <button onclick="exportDashboardPDF()" class="flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-colors font-medium text-sm shadow-sm">
+                            <i class="fa-solid fa-file-pdf"></i>
+                            <span class="hidden sm:inline">PDF</span>
+                        </button>
+                        <button onclick="exportToCSV()" class="flex items-center justify-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-colors font-medium text-sm shadow-sm">
+                            <i class="fa-solid fa-file-excel"></i>
+                            <span class="hidden sm:inline">Excel</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table Content -->
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+                                <th class="p-4 font-semibold w-16 text-center">Apto</th>
+                                <th class="p-4 font-semibold">Propietario</th>
+                                <th class="p-4 font-semibold text-center">Estado</th>
+                                <th class="p-4 font-semibold text-right">Cuota Base</th>
+                                <th class="p-4 font-semibold text-right">Deuda Total</th>
+                                <th class="p-4 font-semibold text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="text-sm text-slate-700 divide-y divide-slate-100">
+                            <!-- Rows will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Table Footer (Pagination) -->
+                <div class="p-4 border-t border-slate-100 flex items-center justify-between text-sm text-slate-500 bg-slate-50/50">
+                    <span id="showing-text">Mostrando resultados...</span>
+                    <div class="flex gap-1">
+                        <button class="px-3 py-1 border border-slate-200 rounded-md hover:bg-slate-100 disabled:opacity-50"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button class="px-3 py-1 border border-slate-200 rounded-md bg-white font-medium text-brand-600">1</button>
+                        <button class="px-3 py-1 border border-slate-200 rounded-md hover:bg-slate-100 disabled:opacity-50"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            </div> <!-- CIERRE VISTA DASHBOARD -->
+
+            <!-- VISTA: ESTADOS DE CUENTA -->
+            <div id="view-estados" class="hidden h-full">
+                <div class="glass-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col h-full">
+                    <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800">Histórico de Deudas</h3>
+                            <p class="text-sm text-slate-500">Desglose de estados de cuenta por año y meses (Al 12 Julio 2026).</p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                            <div class="relative w-full sm:w-64">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fa-solid fa-search text-slate-400"></i>
+                                </div>
+                                <input type="text" id="searchHistorico" class="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 sm:text-sm" placeholder="Buscar Apto o Propietario...">
+                            </div>
+                            <button onclick="exportHistoricoPDF()" class="flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-colors font-medium text-sm shadow-sm">
+                                <i class="fa-solid fa-file-pdf"></i>
+                                <span class="hidden sm:inline">Exportar PDF</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto w-full flex-1 bg-slate-50/30">
+                        <table class="w-full text-left border-collapse min-w-[900px]">
+                            <thead class="bg-slate-100/50 sticky top-0 z-10">
+                                <tr class="border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+                                    <th class="p-4 font-semibold w-16 text-center">Apto</th>
+                                    <th class="p-4 font-semibold min-w-[180px]">Propietario</th>
+                                    <th class="p-3 font-semibold text-right">2022</th>
+                                    <th class="p-3 font-semibold text-right">2023</th>
+                                    <th class="p-3 font-semibold text-right">2024</th>
+                                    <th class="p-3 font-semibold text-right">2025</th>
+                                    <th class="p-3 font-semibold text-right text-slate-600">Ene-May'26</th>
+                                    <th class="p-3 font-semibold text-right text-slate-600">Jun'26</th>
+                                    <th class="p-3 font-semibold text-right text-emerald-600">Abonos</th>
+                                    <th class="p-4 font-semibold text-right text-rose-600">Total Deuda</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historicoTableBody" class="text-sm text-slate-700 divide-y divide-slate-100 bg-white">
+                                <!-- JS Fill -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VISTA: PROPIETARIOS -->
+            <div id="view-propietarios" class="hidden h-full">
+                <div class="glass-card bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col h-full min-h-[500px]">
+                    <div class="border-b border-slate-100 pb-4 mb-6">
+                        <h3 class="text-lg font-bold text-slate-800">Reportes de Propietarios</h3>
+                        <p class="text-sm text-slate-500">Seleccione los campos que desea incluir en su reporte personalizado.</p>
+                    </div>
+                    
+                    <div class="flex flex-col md:flex-row gap-8">
+                        <!-- Selección de Campos -->
+                        <div class="w-full md:w-1/3 bg-slate-50 p-5 rounded-xl border border-slate-100">
+                            <h4 class="font-semibold text-slate-700 mb-4">Campos a Incluir:</h4>
+                            <div class="space-y-3" id="exportFieldsConfig">
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" value="apto" checked disabled class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500 cursor-not-allowed">
+                                    <span class="text-sm text-slate-700 font-medium">Apartamento (Obligatorio)</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" value="propietario" checked class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                                    <span class="text-sm text-slate-700">Propietario</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" value="estado" checked class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                                    <span class="text-sm text-slate-700">Estado (Solvente/Moroso)</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" value="cuota" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                                    <span class="text-sm text-slate-700">Cuota Base</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" value="deuda" checked class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                                    <span class="text-sm text-slate-700">Deuda Total</span>
+                                </label>
+                            </div>
+                            
+                            <div class="mt-8 space-y-3">
+                                <button onclick="exportarPropietarios('pdf')" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-colors font-medium shadow-sm">
+                                    <i class="fa-solid fa-file-pdf"></i> Exportar a PDF
+                                </button>
+                                <button onclick="exportarPropietarios('csv')" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-colors font-medium shadow-sm">
+                                    <i class="fa-solid fa-file-excel"></i> Exportar a Excel (CSV)
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Vista Previa de Datos -->
+                        <div class="w-full md:w-2/3 flex flex-col">
+                            <h4 class="font-semibold text-slate-700 mb-4">Vista Previa (Primeros 5 registros):</h4>
+                            <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                                <table class="w-full text-left text-sm" id="previewExportTable">
+                                    <!-- Se llena con JS -->
+                                </table>
+                            </div>
+                            <div class="mt-4 p-4 bg-blue-50 text-blue-800 rounded-xl text-sm flex gap-3">
+                                <i class="fa-solid fa-circle-info mt-0.5"></i>
+                                <p>Seleccione o desmarque los campos en el panel izquierdo. Al exportar, se generará un documento oficial con todos los propietarios (67 apartamentos) utilizando únicamente las columnas marcadas.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VISTA: PAGOS RECIBIDOS -->
+            <div id="view-pagos" class="hidden h-full">
+                <div class="glass-card bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col md:flex-row gap-6 h-full min-h-[500px]">
+                    <div class="w-full md:w-1/3 space-y-4">
+                        <h3 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-2">Registrar Pago de Apto</h3>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Apartamento / Propietario</label>
+                            <select id="pagoAptoSelect" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer bg-slate-50" onchange="mostrarDeudaActual()">
+                                <option value="">Seleccione Apto...</option>
+                                <!-- JS fill -->
+                            </select>
+                            <div id="deudaActualInfo" class="hidden mt-1 text-xs px-1">
+                                <span class="text-slate-500">Deuda pendiente: </span>
+                                <span id="deudaActualMonto" class="font-bold text-rose-600">$0.00</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Monto Pagado ($)</label>
+                            <input type="number" id="pagoMonto" placeholder="Ej. 25.00" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Referencia / Banco</label>
+                            <input type="text" id="pagoRef" placeholder="Ej. Pago Móvil 1234, Zelle" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-slate-50">
+                        </div>
+                        <button onclick="registrarPagoApto()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-lg transition-colors shadow-sm mt-2"><i class="fa-solid fa-plus mr-2"></i>Guardar Pago</button>
+                    </div>
+                    <div class="w-full md:w-2/3 flex flex-col">
+                        <h3 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-2 mb-4">Últimos Pagos Recibidos</h3>
+                        <div class="flex-1 overflow-y-auto bg-slate-50 rounded-xl border border-slate-100 relative">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-100 text-slate-500 sticky top-0 z-10 shadow-sm">
+                                    <tr>
+                                        <th class="p-3 font-semibold">Fecha</th>
+                                        <th class="p-3 font-semibold">Apto</th>
+                                        <th class="p-3 font-semibold">Referencia</th>
+                                        <th class="p-3 font-semibold text-right">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaPagosRecibidos" class="divide-y divide-slate-100 bg-white">
+                                    <tr id="emptyPagosRow"><td colspan="4" class="p-4 text-center text-slate-400 italic">No hay pagos registrados recientemente.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VISTA: PAGOS DEL EDIFICIO -->
+            <div id="view-servicios" class="hidden h-full">
+                <div class="glass-card bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col md:flex-row gap-6 h-full min-h-[500px]">
+                    <div class="w-full md:w-1/3 space-y-4">
+                        <h3 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-2">Registrar Gasto / Servicio</h3>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Concepto / Servicio</label>
+                            <input type="text" id="servicioDesc" placeholder="Ej. Hidrocapital, Luz, Ascensor" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 outline-none bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Monto Pagado ($)</label>
+                            <input type="number" id="servicioMonto" placeholder="Ej. 150.00" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 outline-none bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Referencia / Factura</label>
+                            <input type="text" id="servicioRef" placeholder="Ej. Factura #4567" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 outline-none bg-slate-50">
+                        </div>
+                        <button onclick="registrarPagoEdificio()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-medium py-2.5 rounded-lg transition-colors shadow-sm mt-2"><i class="fa-solid fa-file-invoice-dollar mr-2"></i>Registrar Egreso</button>
+                    </div>
+                    <div class="w-full md:w-2/3 flex flex-col">
+                        <h3 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-2 mb-4">Historial de Pagos Emitidos</h3>
+                        <div class="flex-1 overflow-y-auto bg-slate-50 rounded-xl border border-slate-100 relative">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-100 text-slate-500 sticky top-0 z-10 shadow-sm">
+                                    <tr>
+                                        <th class="p-3 font-semibold">Fecha</th>
+                                        <th class="p-3 font-semibold">Concepto</th>
+                                        <th class="p-3 font-semibold">Referencia</th>
+                                        <th class="p-3 font-semibold text-right">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaPagosEdificio" class="divide-y divide-slate-100 bg-white">
+                                    <tr id="emptyServiciosRow"><td colspan="4" class="p-4 text-center text-slate-400 italic">No hay egresos registrados recientemente.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VISTA: CONFIGURACIÓN -->
+            <div id="view-configuracion" class="hidden h-full">
+                <div class="glass-card bg-white rounded-2xl p-12 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center h-full min-h-[400px]">
+                    <div class="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 text-3xl mb-6 shadow-inner">
+                        <i class="fa-solid fa-sliders"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-3">Ajustes del Sistema</h2>
+                    <p class="text-slate-500 max-w-md">Esta sección está en desarrollo. Aquí podrás modificar datos bancarios, RIF de la residencia y configurar otros administradores.</p>
+                </div>
+            </div>
+            
+            <!-- Toast Notification Area -->
+            <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2"></div>
+        </div>
+    </main>
+
+    <!-- Modal de Recibo -->
+    <div id="receiptModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white w-full max-w-6xl h-[95vh] md:h-[90vh] md:rounded-2xl flex flex-col md:flex-row overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="receiptModalContent">
+            
+            <!-- Panel Izquierdo: Editor de Gastos (No imprimible) -->
+            <div class="w-full md:w-1/3 bg-slate-50 border-r border-slate-200 flex flex-col h-1/2 md:h-full no-print">
+                <div class="p-4 border-b border-slate-200 bg-white flex justify-between items-center">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-file-invoice-dollar text-brand-600"></i>
+                        Gestión de Gastos
+                    </h3>
+                    <button onclick="closeReceiptModal()" class="md:hidden text-slate-400 hover:text-rose-500">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-4 space-y-6">
+                    <!-- Gastos Comunes -->
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-end">
+                            <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Gastos Comunes (Mes)</h4>
+                            <span class="text-xs bg-brand-100 text-brand-700 px-2 py-1 rounded-md font-medium" id="totalCommonBadge">$0.00</span>
+                        </div>
+                        <p class="text-xs text-slate-500 leading-tight">Estos gastos se suman y se dividen entre los 67 apartamentos.</p>
+                        
+                        <div class="flex gap-2">
+                            <input type="text" id="commonDesc" placeholder="Ej. Vigilancia" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-500 outline-none">
+                            <input type="number" id="commonAmount" placeholder="$" class="w-24 text-sm border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-500 outline-none">
+                            <button onclick="addExpense('common')" class="bg-brand-600 hover:bg-brand-700 text-white px-3 py-2 rounded-lg transition-colors"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        
+                        <ul id="commonExpensesList" class="space-y-2 mt-2">
+                            <!-- JS fill -->
+                        </ul>
+                    </div>
+
+                    <hr class="border-slate-200">
+
+                    <!-- Gastos Individuales -->
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-end">
+                            <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Gastos Individuales</h4>
+                            <span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-md font-medium" id="aptIndicatorBadge">Apto --</span>
+                        </div>
+                        <p class="text-xs text-slate-500 leading-tight">Cargos exclusivos para este apartamento (Multas, reparaciones).</p>
+                        
+                        <div class="flex gap-2">
+                            <input type="text" id="indDesc" placeholder="Ej. Multa asamblea" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 outline-none">
+                            <input type="number" id="indAmount" placeholder="$" class="w-24 text-sm border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 outline-none">
+                            <button onclick="addExpense('individual')" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-lg transition-colors"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        
+                        <ul id="individualExpensesList" class="space-y-2 mt-2">
+                            <!-- JS fill -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel Derecho: Vista Previa del Recibo (Imprimible) -->
+            <div class="w-full md:w-2/3 bg-slate-200/50 flex flex-col h-1/2 md:h-full relative">
+                <!-- Toolbar Vista Previa -->
+                <div class="h-14 bg-white border-b border-slate-200 flex justify-between items-center px-4 md:px-6 shadow-sm no-print absolute top-0 w-full z-10">
+                    <span class="text-sm font-medium text-slate-500">Vista Previa del Documento</span>
+                    <div class="flex gap-3">
+                        <button onclick="window.print()" class="flex items-center gap-2 px-4 py-1.5 bg-slate-800 text-white text-sm font-medium rounded-lg hover:bg-slate-700 transition-colors shadow-sm">
+                            <i class="fa-solid fa-print"></i> Imprimir
+                        </button>
+                        <button onclick="exportReceiptPDF()" class="flex items-center gap-2 px-4 py-1.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors shadow-sm">
+                            <i class="fa-solid fa-file-pdf"></i> PDF
+                        </button>
+                        <button onclick="closeReceiptModal()" class="hidden md:flex items-center gap-2 px-4 py-1.5 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors">
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Contenedor del Papel -->
+                <div class="flex-1 overflow-y-auto p-4 md:p-8 pt-20 md:pt-24 flex justify-center">
+                    
+                    <!-- HOJA DEL RECIBO -->
+                    <div id="printable-receipt" class="bg-white w-full max-w-2xl shadow-xl border border-slate-200 p-8 md:p-10 text-slate-800 text-sm">
+                        
+                        <!-- Cabecera Recibo -->
+                        <div class="flex justify-between items-start border-b-2 border-brand-900 pb-6 mb-6">
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 rounded-lg bg-brand-900 text-white flex items-center justify-center text-2xl">
+                                    <i class="fa-solid fa-building"></i>
+                                </div>
+                                <div>
+                                    <h1 class="text-xl font-bold tracking-tight text-brand-900">RESIDENCIAS VILLACOA</h1>
+                                    <p class="text-xs text-slate-500 mt-0.5">RIF: J-31455419-0</p>
+                                    <p class="text-xs text-slate-500">residenciasvillacoa@gmail.com</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <h2 class="text-2xl font-light text-slate-400 uppercase tracking-widest">Recibo</h2>
+                                <p class="text-sm font-bold mt-1" id="reciboMes">Julio 2026</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Emisión: <span id="reciboFecha">12/07/2026</span></p>
+                            </div>
+                        </div>
+
+                        <!-- Datos del Propietario -->
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-6 flex justify-between items-center">
+                            <div>
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Propietario / Inquilino</p>
+                                <h3 class="font-bold text-lg text-slate-800" id="reciboPropietario">NOMBRE PROPIETARIO</h3>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Apartamento</p>
+                                <h3 class="font-bold text-2xl text-brand-700" id="reciboApto">0-A</h3>
+                            </div>
+                        </div>
+
+                        <!-- Tabla de Gastos Comunes -->
+                        <div class="mb-6">
+                            <h4 class="font-bold text-slate-700 border-b border-slate-300 pb-2 mb-3">1. Detalle de Gastos Comunes</h4>
+                            <table class="w-full text-left text-xs md:text-sm">
+                                <thead>
+                                    <tr class="text-slate-500">
+                                        <th class="py-2 font-medium">Descripción del Gasto</th>
+                                        <th class="py-2 font-medium text-right w-32">Monto Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reciboTablaComunes" class="divide-y divide-slate-100">
+                                    <!-- JS Fill -->
+                                </tbody>
+                                <tfoot>
+                                    <tr class="font-semibold text-slate-700 bg-slate-50">
+                                        <td class="py-2 px-2 text-right">Total Gastos Comunes del Mes:</td>
+                                        <td class="py-2 px-2 text-right" id="reciboTotalComunesGeneral">$0.00</td>
+                                    </tr>
+                                    <tr class="font-bold text-brand-700 bg-brand-50 border-t border-brand-100">
+                                        <td class="py-2 px-2 text-right text-xs">Su cuota (Total ÷ 67 apartamentos):</td>
+                                        <td class="py-2 px-2 text-right" id="reciboCuotaBase">$0.00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <!-- Tabla de Gastos Individuales (Se oculta si no hay) -->
+                        <div class="mb-6" id="reciboSeccionIndividuales">
+                            <h4 class="font-bold text-slate-700 border-b border-slate-300 pb-2 mb-3">2. Cargos Individuales (Apto <span id="reciboAptoInd"></span>)</h4>
+                            <table class="w-full text-left text-xs md:text-sm">
+                                <thead>
+                                    <tr class="text-slate-500">
+                                        <th class="py-2 font-medium">Descripción del Cargo</th>
+                                        <th class="py-2 font-medium text-right w-32">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reciboTablaIndividuales" class="divide-y divide-slate-100">
+                                    <!-- JS Fill -->
+                                </tbody>
+                                <tfoot>
+                                    <tr class="font-bold text-amber-700 bg-amber-50 border-t border-amber-100">
+                                        <td class="py-2 px-2 text-right text-xs">Total Cargos Individuales:</td>
+                                        <td class="py-2 px-2 text-right" id="reciboTotalIndividuales">$0.00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <!-- Resumen Total a Pagar -->
+                        <div class="border-t-2 border-slate-800 pt-4 mt-8">
+                            <div class="w-full md:w-1/2 ml-auto space-y-2">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-slate-500">Deuda Anterior Registrada:</span>
+                                    <span class="font-medium text-slate-700" id="reciboDeudaAnterior">$0.00</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-slate-500">Cuota Base del Mes:</span>
+                                    <span class="font-medium text-slate-700" id="reciboResumenCuota">$0.00</span>
+                                </div>
+                                <div class="flex justify-between text-sm" id="reciboResumenIndRow">
+                                    <span class="text-slate-500">Cargos Individuales:</span>
+                                    <span class="font-medium text-slate-700" id="reciboResumenInd">$0.00</span>
+                                </div>
+                                <div class="flex justify-between items-center border-t border-slate-200 pt-2 mt-2">
+                                    <span class="font-bold text-lg text-slate-800">TOTAL A PAGAR:</span>
+                                    <span class="font-bold text-xl text-rose-600" id="reciboTotalFinal">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pie de página / Info Bancaria -->
+                        <div class="mt-12 text-xs text-slate-500 border-t border-slate-200 pt-4 text-center md:text-left flex flex-col md:flex-row justify-between gap-4">
+                            <div>
+                                <p class="font-bold text-slate-700 mb-1">Información de Pago (Banco Exterior)</p>
+                                <p>Cta Corriente: 0115-004806-048-0034493</p>
+                                <p>Titular: Residencias Villacoa | RIF: J-31455419-0</p>
+                            </div>
+                            <div class="md:text-right">
+                                <p class="italic">Por favor envíe su comprobante a:</p>
+                                <p class="font-medium">residenciasvillacoa@gmail.com</p>
+                                <p class="mt-1 font-bold text-brand-700">¡Gracias por su pago puntual!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        //        // --- 1. DATOS REALES VILLACOA (Al 12 Julio 2026) ---
+        const cuotaBase = 22.27; // Basado en columna jun-26
+
+        // Procesamiento de datos históricos desde el CSV
+        const rawCsvData = `PB-A;GREISMAR MUNDARAI ;;;;;;0;0;0,00
+PB-B;RAFAEL JUVINAO;;;;;;0;;0,00
+PB-C;MIGUEL ANGEL VELIZ;;;;;;0;;0,00
+1-A;GINA SANTILLAN;;;;;;0;;0,00
+1-B;EDGAR CORDERO;;;;179,46;92,89;22,27;50;244,62
+1-C;YOUSI ZUNIAGA;;;;;;22,27;;22,27
+1-D;MARBEL PACHECO;;;;;77,09;22,27;;99,36
+2-A;IVO RODRIGUEZ;;;;;;0;;0,00
+2-B;ANDREA MORALES;;;;;;0;;0,00
+2-C;MIRIAM SIMOES;;;;;;0;;0,00
+2-D;GERARDO GOLLO;;;;189,89;77,07;22,27;;289,23
+3-A;LY YONGYUE;;;;;;0;;0,00
+3-B;URDELINA DE REBOLLEDO;;;;169,93;77,09;22,27;;269,29
+3-C;LUIS BELO;;;;369,35;77,09;22,27;;468,71
+3-D;CARMELO R. HERNANDEZ;;;;;;0;;0,00
+4-A;LARRYS GIL;;;;;;0;;0,00
+4-B;MIRLENI ORTA;;;;;;0;;0,00
+4-C;RAFAEL STUARD;;;;;;22,27;;22,27
+4-D;DIGNA ISMAR DUQUE;;;;;;0;;0,00
+5-A;LUDWING PALIMA;;;;;45,18;22,27;;67,45
+5-B;GLADYS PACHECO;;;;;;22,27;;22,27
+5-C;LISBET CABRITA PEREZ;;;;;;0;;0,00
+5-D;FLORANGEL UZCATEGUI;;;;;;22,27;;22,27
+6-A;YAJAIRA BERRIO AMARO;;;;67,04;77,09;22,27;;166,40
+6-B;MARIEL JUVINAO;;;;;;22,27;;22,27
+6-C;ANDREINA ROJAS;;;;;;22,27;;22,27
+6-D;DULCE MARIA GONZALEZ;;;;;;0;;0,00
+7-A;CARMEN ROJAS;;;;;;;;0,00
+7-B;VANESSA RABECO;;;;;;0;;0,00
+7-C;SILVIA CARRILLO;;;;;;22,27;;22,27
+7-D;ROBINSON ZAPATA;;;;;;22,27;;22,27
+8-A;CLARA TEXEIRA ;;;;;;22,27;;22,27
+8-B;ELIZABETH GUILLEN;;;;;;22,27;;22,27
+8-C;ABNER PESTANA;;;;;;22,27;;22,27
+8-D;YENNY PINANGO;;;;;;0;;0,00
+9-A;MORAIMA OCHOA;;;;;;22,27;;22,27
+9-B;GENESIS LINARES;;;;;;22,27;;22,27
+9-C;HECTOR GONZALEZ;;;;;0;22,27;;22,27
+9-D;GISELA BASTIDAS;;;;;;22,27;;22,27
+10-A;VERONICA RUIZ;;;;;;;;0,00
+10-B;IRMA AGUILAR;;;;;15,8;22,27;;38,07
+10-C;ORLANDO SANCHEZ;;;;;;0;;0,00
+10-D;KATIUSKA QUIROZ ;;;;;;22,27;;22,27
+11-A;JAIME VELEZ;;;;;;0;;0,00
+11-B;YOLANDA TINO;;;;;;22,27;;22,27
+11-C;HECTOR GARCIA ;;;;;;;;0,00
+11-D;CARMEN TORO;;;;;15,80;22,27;;38,07
+12-A;PABLO GARCIA;;;;;;0;;0,00
+12-B;CLAUDIA OLIVARES;;127,50;180,95;228,87;77,09;22,27;150;486,68
+12-C;PAOLA ROJAS;;;;;;22,27;;22,27
+12-D;PASTOR VILLALOBOS;;;;;;0;;0,00
+13-A;RANIEL GONZALEZ ;;;;;;;;0,00
+13-B;SILVIO PEREZ;;;;;61,29;22,27;;83,56
+13-C;LILIA ROMERO;130,87;153,28;196,21;228,87;77,09;22,27;15;793,59
+13-D;LIIZA BAQUERO;;;;;0;22,27;;22,27
+14-A;ELENA NORIEGA;87,36;65,92;206,31;118,87;77,09;22,27;;577,82
+14-B;DAYANA OTAIZA;;;;;;22,27;;22,27
+14-C;MARIBEL RODRIGUEZ;;;;;0;22,27;;22,27
+14-D;HECTOR CASTILLO;;;;;0;0;;0,00
+15-A;PATRICIA GIL BARRIOS;;;;;45,18;22,27;;67,45
+15-B;INGRID ALMEIDA;;;;79,77;77,09;22,27;;179,13
+15-C;ANAEL VILLALBA;;;;210,54;77,09;22,27;;309,90
+15-D;JULIAN FERNANDEZ;;;;;;;;0,00
+16-A;RAFAEL ALVARADO;;;;;0;0;;0,00
+16-B;ALFREDO TORREALBA;;;;60,93;77,09;22,27;;160,29
+16-C;LISBETH QUINTERO;;;;;0;22,27;;22,27
+16-D;ADRIANA RODRIGUEZ;;;;;17,41;22,27;;39,68`;
+
+        // Función para parsear números con formato de coma
+        const parseNum = (val) => {
+            if(!val || val.trim() === '') return 0;
+            return parseFloat(val.replace(/\./g, '').replace(',', '.')) || 0;
+        };
+
+        const mockData = rawCsvData.split('\n').filter(line => line.includes(';')).map(line => {
+            const parts = line.split(';');
+            const deuda = parseNum(parts[9]);
+            return {
+                apto: parts[0].trim().replace(',', ''),
+                propietario: parts[1].trim(),
+                y2022: parseNum(parts[2]),
+                y2023: parseNum(parts[3]),
+                y2024: parseNum(parts[4]),
+                y2025: parseNum(parts[5]),
+                eneMay26: parseNum(parts[6]),
+                jun26: parseNum(parts[7]),
+                abono: parseNum(parts[8]),
+                deuda: deuda,
+                estado: deuda > 0 ? 'moroso' : 'solvente'
+            };
+        });
+
+        // Format currency
+        const formatMoney = (amount) => {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+        };
+
+        // Format Date
+        const formatDate = (dateString) => {
+            if(!dateString) return "N/A";
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString('es-ES', options);
+        };
+
+        // --- STREAMING_CHUNK:Lógica de Navegación... ---
+        function switchTab(targetTab) {
+            const views = ['dashboard', 'estados', 'pagos', 'servicios', 'propietarios', 'configuracion'];
+            const headers = {
+                'dashboard': { title: 'Resumen Financiero', sub: 'Estado de cuenta general de la comunidad.' },
+                'estados': { title: 'Estados de Cuenta', sub: 'Gestión y envío de recibos históricos.' },
+                'pagos': { title: 'Registro de Pagos', sub: 'Asignar pagos recibidos a los apartamentos.' },
+                'servicios': { title: 'Pagos del Edificio', sub: 'Registro de egresos y pago a proveedores.' },
+                'propietarios': { title: 'Directorio de Residentes', sub: 'Administración de datos y contactos.' },
+                'configuracion': { title: 'Configuración', sub: 'Ajustes de cuenta bancaria y parámetros.' }
+            };
+
+            views.forEach(view => {
+                // Manejar visibilidad de contenedores
+                const el = document.getElementById(`view-${view}`);
+                if (el) {
+                    if (view === targetTab) {
+                        el.classList.remove('hidden');
+                        el.classList.add('block');
+                    } else {
+                        el.classList.add('hidden');
+                        el.classList.remove('block');
+                    }
+                }
+                
+                // Manejar estilos del menú activo
+                const btn = document.getElementById(`nav-${view}`);
+                if (btn) {
+                    if (view === targetTab) {
+                        btn.className = "flex items-center gap-3 px-4 py-3 bg-brand-600/40 rounded-xl text-white transition-colors border border-brand-500/30";
+                    } else {
+                        btn.className = "flex items-center gap-3 px-4 py-3 text-brand-100 hover:bg-brand-600/20 rounded-xl transition-colors";
+                    }
+                }
+            });
+
+            // Actualizar textos del header
+            document.getElementById('header-title').textContent = headers[targetTab].title;
+            document.getElementById('header-subtitle').textContent = headers[targetTab].sub;
+        }
+
+        // --- STREAMING_CHUNK:Estado de Gastos y Recibos... ---
+        // Gastos comunes por defecto (suman ~$1492.09 para dar una cuota base de 22.27 entre 67 aptos)
+        let commonExpenses = [
+            { id: 1, desc: "Servicio de Vigilancia", amount: 600.00 },
+            { id: 2, desc: "Conserjería y Limpieza", amount: 350.00 },
+            { id: 3, desc: "Mantenimiento Ascensores", amount: 250.00 },
+            { id: 4, desc: "Electricidad Áreas Comunes", amount: 142.09 },
+            { id: 5, desc: "Servicio de Agua", amount: 150.00 }
+        ];
+
+        // Gastos individuales almacenados por apartamento (Ej: { "13-C": [{desc: "Multa", amount: 50}] })
+        let individualExpensesMap = {};
+        
+        let currentEditingApto = null;
+        let currentOwnerData = null;
+        const totalApartamentos = 67; // Fijo según los datos
+
+        // --- 2. LÓGICA DE LA TABLA Y KPIs ---
+        const tableBody = document.getElementById('tableBody');
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        
+        // Elementos KPI
+        const kpiRecaudado = document.getElementById('kpi-recaudado');
+        const kpiDeuda = document.getElementById('kpi-deuda');
+        const kpiSolvencia = document.getElementById('kpi-solvencia');
+        const kpiMorososCount = document.getElementById('kpi-morosos-count');
+        const showingText = document.getElementById('showing-text');
+
+        // Función Principal para Renderizar y Calcular
+        function updateDashboard(dataToRender) {
+            // Render Table
+            tableBody.innerHTML = '';
+            
+            if(dataToRender.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No se encontraron registros con esos filtros.</td></tr>`;
+            }
+
+            dataToRender.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 transition-colors group";
+                
+                const statusBadge = row.estado === 'solvente' 
+                    ? `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800"><i class="fa-solid fa-check-circle mr-1"></i> Al día</span>`
+                    : `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-800"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Moroso</span>`;
+                
+                // Calculamos cuota dinámica basada en los gastos comunes actuales
+                const totalCommon = commonExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+                const cuotaDinamica = totalCommon / totalApartamentos;
+
+                tr.innerHTML = `
+                    <td class="p-4 text-center font-bold text-slate-700">${row.apto}</td>
+                    <td class="p-4 font-medium text-slate-800">${row.propietario}</td>
+                    <td class="p-4 text-center">${statusBadge}</td>
+                    <td class="p-4 text-right text-slate-600">${formatMoney(cuotaDinamica)}</td>
+                    <td class="p-4 text-right font-semibold ${row.deuda > 0 ? 'text-rose-600' : 'text-slate-600'}">${formatMoney(row.deuda)}</td>
+                    <td class="p-4 text-center">
+                        <div class="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="openReceiptModal('${row.apto}')" class="p-2 text-brand-600 hover:text-white hover:bg-brand-600 rounded-lg transition-colors" title="Generar Recibo">
+                                <i class="fa-solid fa-file-invoice-dollar"></i>
+                            </button>
+                            <button onclick="showNotification('Recordatorio enviado a ${row.apto}')" class="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors" title="Enviar recordatorio">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            // Update KPIs based on CURRENT filtered data (makes it super interactive!)
+            // Ojo: En la vida real, podrías querer que los KPIs siempre muestren el total global. 
+            // Aquí lo hacemos dinámico para mostrar la interactividad.
+            
+            let totalEsperado = dataToRender.length * cuotaBase;
+            let totalDeuda = dataToRender.reduce((sum, item) => sum + item.deuda, 0);
+            let totalRecaudado = totalEsperado - (dataToRender.filter(i => i.deuda > 0).length * cuotaBase); // Aproximación simple
+            
+            // Calculo real: sumamos lo pagado. Si es solvente, pagó la cuota de este mes.
+            totalRecaudado = dataToRender.filter(i => i.estado === 'solvente').length * cuotaBase;
+
+            let morososCount = dataToRender.filter(i => i.estado === 'moroso').length;
+            let solvenciaPorcentaje = dataToRender.length > 0 ? ((dataToRender.length - morososCount) / dataToRender.length) * 100 : 0;
+
+            // Animar números (opcional, aquí solo los asignamos)
+            kpiRecaudado.textContent = formatMoney(totalRecaudado);
+            kpiDeuda.textContent = formatMoney(totalDeuda);
+            kpiMorososCount.textContent = `${morososCount} aptos con deuda`;
+            kpiSolvencia.textContent = `${Math.round(solvenciaPorcentaje)}%`;
+            
+            showingText.textContent = `Mostrando ${dataToRender.length} registros`;
+        }
+
+        // --- STREAMING_CHUNK:Logica del Generador de Recibos... ---
+        function openReceiptModal(apto) {
+            currentEditingApto = apto;
+            currentOwnerData = mockData.find(d => d.apto === apto);
+            
+            if(!individualExpensesMap[apto]) {
+                individualExpensesMap[apto] = [];
+            }
+
+            // UI Elements
+            document.getElementById('aptIndicatorBadge').textContent = `Apto ${apto}`;
+            
+            // Renderizar Listas Editor
+            renderExpenseEditors();
+            
+            // Renderizar Vista Previa
+            renderReceiptPreview();
+
+            // Mostrar Modal con animación
+            const modal = document.getElementById('receiptModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            // Pequeño delay para la transición de opacidad
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                document.getElementById('receiptModalContent').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeReceiptModal() {
+            const modal = document.getElementById('receiptModal');
+            modal.classList.add('opacity-0');
+            document.getElementById('receiptModalContent').classList.add('scale-95');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                currentEditingApto = null;
+                currentOwnerData = null;
+                // Actualizar tabla principal por si cambió la cuota base
+                applyFilters();
+            }, 300);
+        }
+
+        function renderExpenseEditors() {
+            // Comunes
+            const commonList = document.getElementById('commonExpensesList');
+            commonList.innerHTML = '';
+            let totalCommon = 0;
+            
+            commonExpenses.forEach((exp, index) => {
+                totalCommon += exp.amount;
+                commonList.innerHTML += `
+                    <li class="flex justify-between items-center bg-white border border-slate-200 p-2 rounded-lg text-sm">
+                        <span class="truncate pr-2" title="${exp.desc}">${exp.desc}</span>
+                        <div class="flex items-center gap-3 flex-shrink-0">
+                            <span class="font-medium text-slate-700">${formatMoney(exp.amount)}</span>
+                            <button onclick="removeExpense('common', ${index})" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </li>
+                `;
+            });
+            document.getElementById('totalCommonBadge').textContent = formatMoney(totalCommon);
+
+            // Individuales
+            const indList = document.getElementById('individualExpensesList');
+            indList.innerHTML = '';
+            const inds = individualExpensesMap[currentEditingApto] || [];
+            
+            if(inds.length === 0) {
+                indList.innerHTML = '<li class="text-xs text-slate-400 text-center py-2 italic">Sin cargos individuales</li>';
+            } else {
+                inds.forEach((exp, index) => {
+                    indList.innerHTML += `
+                        <li class="flex justify-between items-center bg-white border border-slate-200 p-2 rounded-lg text-sm">
+                            <span class="truncate pr-2" title="${exp.desc}">${exp.desc}</span>
+                            <div class="flex items-center gap-3 flex-shrink-0">
+                                <span class="font-medium text-amber-700">${formatMoney(exp.amount)}</span>
+                                <button onclick="removeExpense('individual', ${index})" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        </li>
+                    `;
+                });
+            }
+        }
+
+        function addExpense(type) {
+            const descInput = document.getElementById(type === 'common' ? 'commonDesc' : 'indDesc');
+            const amountInput = document.getElementById(type === 'common' ? 'commonAmount' : 'indAmount');
+            
+            const desc = descInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+
+            if(!desc || isNaN(amount) || amount <= 0) {
+                showNotification("Ingrese una descripción y monto válido");
+                return;
+            }
+
+            if(type === 'common') {
+                commonExpenses.push({ id: Date.now(), desc, amount });
+            } else {
+                individualExpensesMap[currentEditingApto].push({ id: Date.now(), desc, amount });
+            }
+
+            descInput.value = '';
+            amountInput.value = '';
+            
+            renderExpenseEditors();
+            renderReceiptPreview();
+        }
+
+        function removeExpense(type, index) {
+            if(type === 'common') {
+                commonExpenses.splice(index, 1);
+            } else {
+                individualExpensesMap[currentEditingApto].splice(index, 1);
+            }
+            renderExpenseEditors();
+            renderReceiptPreview();
+        }
+
+        function renderReceiptPreview() {
+            if(!currentOwnerData) return;
+
+            // Datos Base
+            document.getElementById('reciboApto').textContent = currentOwnerData.apto;
+            document.getElementById('reciboAptoInd').textContent = currentOwnerData.apto;
+            document.getElementById('reciboPropietario').textContent = currentOwnerData.propietario;
+            
+            const today = new Date();
+            const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            document.getElementById('reciboMes').textContent = `${monthNames[today.getMonth()]} ${today.getFullYear()}`;
+            document.getElementById('reciboFecha').textContent = today.toLocaleDateString('es-ES');
+
+            // Render Comunes
+            const tComunes = document.getElementById('reciboTablaComunes');
+            tComunes.innerHTML = '';
+            let sumComunes = 0;
+            commonExpenses.forEach(exp => {
+                sumComunes += exp.amount;
+                tComunes.innerHTML += `
+                    <tr>
+                        <td class="py-2 px-2 border-b border-slate-100">${exp.desc}</td>
+                        <td class="py-2 px-2 border-b border-slate-100 text-right">${formatMoney(exp.amount)}</td>
+                    </tr>
+                `;
+            });
+            document.getElementById('reciboTotalComunesGeneral').textContent = formatMoney(sumComunes);
+            const cuotaMes = sumComunes / totalApartamentos;
+            document.getElementById('reciboCuotaBase').textContent = formatMoney(cuotaMes);
+
+            // Render Individuales
+            const tInds = document.getElementById('reciboTablaIndividuales');
+            tInds.innerHTML = '';
+            let sumInds = 0;
+            const myInds = individualExpensesMap[currentEditingApto] || [];
+            
+            if(myInds.length > 0) {
+                document.getElementById('reciboSeccionIndividuales').style.display = 'block';
+                document.getElementById('reciboResumenIndRow').style.display = 'flex';
+                
+                myInds.forEach(exp => {
+                    sumInds += exp.amount;
+                    tInds.innerHTML += `
+                        <tr>
+                            <td class="py-2 px-2 border-b border-slate-100">${exp.desc}</td>
+                            <td class="py-2 px-2 border-b border-slate-100 text-right">${formatMoney(exp.amount)}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                document.getElementById('reciboSeccionIndividuales').style.display = 'none';
+                document.getElementById('reciboResumenIndRow').style.display = 'none';
+            }
+            document.getElementById('reciboTotalIndividuales').textContent = formatMoney(sumInds);
+
+            // Totales Resumen
+            document.getElementById('reciboDeudaAnterior').textContent = formatMoney(currentOwnerData.deuda);
+            document.getElementById('reciboResumenCuota').textContent = formatMoney(cuotaMes);
+            document.getElementById('reciboResumenInd').textContent = formatMoney(sumInds);
+            
+            const totalPagar = currentOwnerData.deuda + cuotaMes + sumInds;
+            document.getElementById('reciboTotalFinal').textContent = formatMoney(totalPagar);
+        }
+
+        // --- STREAMING_CHUNK:Configurando Filtros y Eventos de Búsqueda... ---
+        function applyFilters() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const status = statusFilter.value;
+            
+            const filteredData = mockData.filter(item => {
+                const matchSearch = item.apto.toLowerCase().includes(searchTerm) || 
+                                    item.propietario.toLowerCase().includes(searchTerm);
+                const matchStatus = status === 'todos' || item.estado === status;
+                
+                return matchSearch && matchStatus;
+            });
+            
+            updateDashboard(filteredData);
+        }
+
+        searchInput.addEventListener('input', applyFilters);
+        statusFilter.addEventListener('change', applyFilters);
+
+        // --- STREAMING_CHUNK:Lógica del Histórico... ---
+        const historicoTableBody = document.getElementById('historicoTableBody');
+        const searchHistorico = document.getElementById('searchHistorico');
+
+        function updateHistorico(dataToRender) {
+            historicoTableBody.innerHTML = '';
+            
+            if(dataToRender.length === 0) {
+                historicoTableBody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-slate-500">No se encontraron registros.</td></tr>`;
+                return;
+            }
+
+            dataToRender.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors border-b border-slate-50";
+                
+                // Función auxiliar para colorizar celdas vacías o con valores
+                const fVal = (val, isAbono = false, isTotal = false) => {
+                    if(val === 0) return `<span class="text-slate-300">-</span>`;
+                    let colorClass = "text-slate-600";
+                    if(isAbono) colorClass = "text-emerald-600 font-medium";
+                    if(isTotal && val > 0) colorClass = "text-rose-600 font-bold";
+                    return `<span class="${colorClass}">${formatMoney(val)}</span>`;
+                };
+
+                tr.innerHTML = `
+                    <td class="p-4 text-center font-bold text-slate-700">${row.apto}</td>
+                    <td class="p-4 font-medium text-slate-800">${row.propietario}</td>
+                    <td class="p-3 text-right">${fVal(row.y2022)}</td>
+                    <td class="p-3 text-right">${fVal(row.y2023)}</td>
+                    <td class="p-3 text-right">${fVal(row.y2024)}</td>
+                    <td class="p-3 text-right">${fVal(row.y2025)}</td>
+                    <td class="p-3 text-right bg-slate-50/50">${fVal(row.eneMay26)}</td>
+                    <td class="p-3 text-right bg-slate-50/50">${fVal(row.jun26)}</td>
+                    <td class="p-3 text-right bg-emerald-50/30">${fVal(row.abono, true)}</td>
+                    <td class="p-4 text-right bg-rose-50/10">${fVal(row.deuda, false, true)}</td>
+                `;
+                historicoTableBody.appendChild(tr);
+            });
+        }
+
+        if(searchHistorico) {
+            searchHistorico.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                const filtered = mockData.filter(item => 
+                    item.apto.toLowerCase().includes(term) || 
+                    item.propietario.toLowerCase().includes(term)
+                );
+                updateHistorico(filtered);
+            });
+        }
+
+        // --- 3. INICIALIZACIÓN DE GRÁFICOS (Chart.js) ---
+        function initCharts() {
+            // Estilos globales de Chart.js
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            Chart.defaults.color = '#64748b';
+            
+            // 1. Gráfico de Barras: Flujo de Caja
+            const ctxCashflow = document.getElementById('cashflowChart').getContext('2d');
+            
+            // Gradientes para las barras
+            const gradientIncome = ctxCashflow.createLinearGradient(0, 0, 0, 400);
+            gradientIncome.addColorStop(0, '#34d399'); // emerald-400
+            gradientIncome.addColorStop(1, '#059669'); // emerald-600
+            
+            const gradientExpense = ctxCashflow.createLinearGradient(0, 0, 0, 400);
+            gradientExpense.addColorStop(0, '#f87171'); // rose-400
+            gradientExpense.addColorStop(1, '#dc2626'); // rose-600
+
+            new Chart(ctxCashflow, {
+                type: 'bar',
+                data: {
+                    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul'],
+                    datasets: [
+                        {
+                            label: 'Ingresos Realizados',
+                            data: [4200, 4500, 4100, 4600, 4300, 4800, 3950],
+                            backgroundColor: gradientIncome,
+                            borderRadius: 6,
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.8
+                        },
+                        {
+                            label: 'Egresos (Pagos)',
+                            data: [3800, 3900, 4200, 3700, 4100, 4000, 4210],
+                            backgroundColor: gradientExpense,
+                            borderRadius: 6,
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 8 } },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleFont: { size: 13 },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: { label: function(context) { return ' ' + context.dataset.label + ': ' + formatMoney(context.raw); } }
+                        }
+                    },
+                    scales: {
+                        y: { border: { display: false }, grid: { color: '#f1f5f9', drawTicks: false }, ticks: { callback: function(value) { return '$' + value; }, padding: 10 } },
+                        x: { border: { display: false }, grid: { display: false } }
+                    },
+                    interaction: { mode: 'index', intersect: false }
+                }
+            });
+
+            // 2. Gráfico de Doughnut: Distribución de Gastos
+            const ctxExpenses = document.getElementById('expensesChart').getContext('2d');
+            new Chart(ctxExpenses, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Mantenimiento General', 'Servicios (Agua/Luz)', 'Seguridad y Vigilancia', 'Administración', 'Fondo de Reserva'],
+                    datasets: [{
+                        data: [1200, 850, 1500, 400, 260],
+                        backgroundColor: ['#0ea5e9', '#8b5cf6', '#f59e0b', '#ec4899', '#10b981'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%', // Hace el centro más grande
+                    plugins: {
+                        legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8, padding: 20, font: { size: 11 } } },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            callbacks: { label: function(context) { return ' ' + context.label + ': ' + formatMoney(context.raw); } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- STREAMING_CHUNK:Funciones auxiliares y arranque de la aplicación... ---
+        
+        // Simular exportación a CSV
+        function exportToCSV() {
+            showNotification("Descargando reporte Estado_Cuenta_Villacoa.csv...");
+            // Lógica real de exportación iría aquí
+        }
+
+        // --- STREAMING_CHUNK:Lógica de Exportación Personalizada de Propietarios... ---
+        function getSelectedFields() {
+            const fields = ['apto']; // Obligatorio
+            document.querySelectorAll('#exportFieldsConfig input[type="checkbox"]:not(:disabled)').forEach(cb => {
+                if(cb.checked) fields.push(cb.value);
+            });
+            return fields;
+        }
+
+        function updateExportPreview() {
+            const table = document.getElementById('previewExportTable');
+            if(!table) return;
+            const fields = getSelectedFields();
+            
+            const fieldLabels = {
+                'apto': 'Apto',
+                'propietario': 'Propietario',
+                'estado': 'Estado',
+                'cuota': 'Cuota Base',
+                'deuda': 'Deuda Total'
+            };
+
+            let html = '<thead class="bg-slate-100 text-slate-600"><tr>';
+            fields.forEach(f => {
+                html += `<th class="p-3 font-semibold">${fieldLabels[f]}</th>`;
+            });
+            html += '</tr></thead><tbody class="divide-y divide-slate-100">';
+
+            // Mostrar solo los primeros 5 en la vista previa
+            mockData.slice(0, 5).forEach(item => {
+                html += '<tr>';
+                fields.forEach(f => {
+                    let val = '';
+                    if(f === 'apto') val = `<span class="font-bold">${item.apto}</span>`;
+                    if(f === 'propietario') val = item.propietario;
+                    if(f === 'estado') val = item.estado === 'solvente' ? 'Solvente' : 'Moroso';
+                    if(f === 'cuota') val = formatMoney(commonExpenses.reduce((s, e) => s + e.amount, 0) / totalApartamentos);
+                    if(f === 'deuda') val = formatMoney(item.deuda);
+                    html += `<td class="p-3 text-slate-700">${val}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody>';
+            table.innerHTML = html;
+        }
+
+        // Escuchadores de eventos para actualizar el preview al clickear checkboxes
+        document.addEventListener('DOMContentLoaded', () => {
+            const checkboxes = document.querySelectorAll('#exportFieldsConfig input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', updateExportPreview);
+            });
+        });
+
+        function exportarPropietarios(tipo) {
+            const fields = getSelectedFields();
+            const fieldLabels = {
+                'apto': 'Apto',
+                'propietario': 'Propietario',
+                'estado': 'Estado',
+                'cuota': 'Cuota Base',
+                'deuda': 'Deuda Total'
+            };
+
+            if (tipo === 'csv') {
+                showNotification("Generando Excel (CSV)...");
+                let csvContent = fields.map(f => fieldLabels[f]).join(',') + '\n';
+                
+                mockData.forEach(item => {
+                    const row = fields.map(f => {
+                        if(f === 'apto') return item.apto;
+                        if(f === 'propietario') return `"${item.propietario}"`;
+                        if(f === 'estado') return item.estado === 'solvente' ? 'Solvente' : 'Moroso';
+                        if(f === 'cuota') return (commonExpenses.reduce((s, e) => s + e.amount, 0) / totalApartamentos).toFixed(2);
+                        if(f === 'deuda') return item.deuda.toFixed(2);
+                    });
+                    csvContent += row.join(',') + '\n';
+                });
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", "Reporte_Propietarios_Villacoa.csv");
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showNotification("Archivo Excel descargado.");
+
+            } else if (tipo === 'pdf') {
+                showNotification("Generando PDF estructurado, espere...");
+                
+                // Crear un contenedor temporal oculto y estilizado para exportar
+                const tempDiv = document.createElement('div');
+                tempDiv.style.padding = '30px';
+                tempDiv.style.fontFamily = 'Inter, sans-serif';
+                tempDiv.style.color = '#1e293b';
+                tempDiv.style.width = '800px';
+
+                let html = `
+                    <div style="border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 20px;">
+                        <h2 style="margin:0; font-size: 24px; font-weight: bold; color: #0c4a6e;">Reporte de Propietarios - Residencias Villacoa</h2>
+                        <p style="margin: 5px 0 0 0; color: #64748b; font-size: 14px;">Generado el: ${new Date().toLocaleDateString('es-ES')}</p>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+                        <thead>
+                            <tr style="background-color: #f1f5f9; color: #475569;">
+                `;
+                fields.forEach(f => {
+                    html += `<th style="padding: 10px; border-bottom: 1px solid #cbd5e1;">${fieldLabels[f]}</th>`;
+                });
+                html += '</tr></thead><tbody>';
+
+                mockData.forEach(item => {
+                    html += '<tr>';
+                    fields.forEach(f => {
+                        let val = '';
+                        if(f === 'apto') val = `<strong>${item.apto}</strong>`;
+                        if(f === 'propietario') val = item.propietario;
+                        if(f === 'estado') val = item.estado === 'solvente' ? 'Solvente' : '<span style="color:#e11d48">Moroso</span>';
+                        if(f === 'cuota') val = formatMoney(commonExpenses.reduce((s, e) => s + e.amount, 0) / totalApartamentos);
+                        if(f === 'deuda') val = item.deuda > 0 ? `<strong style="color:#e11d48">${formatMoney(item.deuda)}</strong>` : formatMoney(item.deuda);
+                        html += `<td style="padding: 8px 10px; border-bottom: 1px solid #f1f5f9;">${val}</td>`;
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody></table>';
+
+                tempDiv.innerHTML = html;
+                document.body.appendChild(tempDiv);
+
+                const opt = {
+                    margin:       0.5,
+                    filename:     'Reporte_Propietarios_Villacoa.pdf',
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true },
+                    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+                };
+
+                html2pdf().set(opt).from(tempDiv).save().then(() => {
+                    document.body.removeChild(tempDiv);
+                    showNotification("PDF descargado con éxito");
+                });
+            }
+        }
+
+        // --- STREAMING_CHUNK:Generación de Documentos PDF... ---
+        function exportDashboardPDF() {
+            showNotification("Generando PDF de la tabla...");
+            // Seleccionar el contenedor de la tabla principal
+            const element = document.querySelector('#view-dashboard > div:last-child');
+            const opt = {
+                margin:       0.3,
+                filename:     'Detalle_Propietarios_Villacoa.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save().then(() => showNotification("PDF descargado con éxito"));
+        }
+
+        function exportHistoricoPDF() {
+            showNotification("Generando PDF del Histórico, espere un momento...");
+            // Seleccionar la tarjeta del histórico completo
+            const element = document.querySelector('#view-estados .glass-card');
+            const opt = {
+                margin:       0.3,
+                filename:     'Historico_Deudas_Villacoa_Julio2026.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' } // Horizontal para el histórico
+            };
+            html2pdf().set(opt).from(element).save().then(() => showNotification("PDF descargado con éxito"));
+        }
+
+        // --- STREAMING_CHUNK:Lógica de Nuevos Módulos (Pagos y Servicios)... ---
+        function initSelectAptos() {
+            const select = document.getElementById('pagoAptoSelect');
+            if(!select) return;
+            mockData.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.apto;
+                opt.textContent = `Apto ${item.apto} - ${item.propietario}`;
+                select.appendChild(opt);
+            });
+        }
+
+        function mostrarDeudaActual() {
+            const apto = document.getElementById('pagoAptoSelect').value;
+            const infoDiv = document.getElementById('deudaActualInfo');
+            const montoSpan = document.getElementById('deudaActualMonto');
+            
+            if(!apto) {
+                infoDiv.classList.add('hidden');
+                document.getElementById('pagoMonto').value = '';
+                return;
+            }
+            
+            const aptoData = mockData.find(d => d.apto === apto);
+            if(aptoData) {
+                infoDiv.classList.remove('hidden');
+                montoSpan.textContent = formatMoney(aptoData.deuda);
+                montoSpan.className = aptoData.deuda > 0 ? 'font-bold text-rose-600' : 'font-bold text-emerald-600';
+                
+                // Sugerir el monto a pagar automáticamente
+                if(aptoData.deuda > 0) {
+                    document.getElementById('pagoMonto').value = aptoData.deuda.toFixed(2);
+                } else {
+                    document.getElementById('pagoMonto').value = '';
+                }
+            }
+        }
+
+        function registrarPagoApto() {
+            const apto = document.getElementById('pagoAptoSelect').value;
+            const monto = parseFloat(document.getElementById('pagoMonto').value);
+            const ref = document.getElementById('pagoRef').value.trim();
+
+            if(!apto || isNaN(monto) || monto <= 0 || !ref) {
+                showNotification("Por favor complete todos los campos correctamente.");
+                return;
+            }
+
+            // 1. DESCONTAR LA DEUDA EN LA BASE DE DATOS LOCAL
+            const aptoData = mockData.find(d => d.apto === apto);
+            if(aptoData) {
+                aptoData.deuda -= monto;
+                if(aptoData.deuda <= 0) {
+                    aptoData.deuda = 0; // Lo mantenemos en cero si paga de más por simplicidad
+                    aptoData.estado = 'solvente';
+                }
+            }
+
+            // 2. AGREGAR A LA TABLA DE ÚLTIMOS PAGOS
+            const tbody = document.getElementById('tablaPagosRecibidos');
+            const emptyRow = document.getElementById('emptyPagosRow');
+            if(emptyRow) emptyRow.remove();
+
+            const tr = document.createElement('tr');
+            const fecha = new Date().toLocaleDateString('es-ES');
+            tr.innerHTML = `
+                <td class="p-3 border-b border-slate-50">${fecha}</td>
+                <td class="p-3 border-b border-slate-50 font-bold text-slate-700">${apto}</td>
+                <td class="p-3 border-b border-slate-50">${ref}</td>
+                <td class="p-3 border-b border-slate-50 text-right text-emerald-600 font-medium">+${formatMoney(monto)}</td>
+            `;
+            tbody.insertBefore(tr, tbody.firstChild);
+
+            // 3. LIMPIAR EL FORMULARIO
+            document.getElementById('pagoAptoSelect').value = '';
+            document.getElementById('pagoMonto').value = '';
+            document.getElementById('pagoRef').value = '';
+            document.getElementById('deudaActualInfo').classList.add('hidden');
+
+            showNotification(`Pago registrado. Nueva deuda de Apto ${apto}: ${formatMoney(aptoData.deuda)}`);
+
+            // 4. ACTUALIZAR TODO EL SISTEMA VISUALMENTE
+            applyFilters(); // Actualiza la tabla principal del Dashboard y los KPIs (Monto recaudado/Deuda total)
+            
+            // Actualiza la tabla del Histórico de Deudas
+            const searchHistoricoInput = document.getElementById('searchHistorico');
+            if(searchHistoricoInput) {
+                const termHistorico = searchHistoricoInput.value.toLowerCase();
+                const filteredHistorico = mockData.filter(item => 
+                    item.apto.toLowerCase().includes(termHistorico) || 
+                    item.propietario.toLowerCase().includes(termHistorico)
+                );
+                updateHistorico(filteredHistorico);
+            } else {
+                updateHistorico(mockData);
+            }
+        }
+
+        function registrarPagoEdificio() {
+            const desc = document.getElementById('servicioDesc').value.trim();
+            const monto = parseFloat(document.getElementById('servicioMonto').value);
+            const ref = document.getElementById('servicioRef').value.trim();
+
+            if(!desc || isNaN(monto) || monto <= 0 || !ref) {
+                showNotification("Por favor complete todos los campos correctamente.");
+                return;
+            }
+
+            const tbody = document.getElementById('tablaPagosEdificio');
+            const emptyRow = document.getElementById('emptyServiciosRow');
+            if(emptyRow) emptyRow.remove();
+
+            const tr = document.createElement('tr');
+            const fecha = new Date().toLocaleDateString('es-ES');
+            tr.innerHTML = `
+                <td class="p-3 border-b border-slate-50">${fecha}</td>
+                <td class="p-3 border-b border-slate-50 font-medium text-slate-800">${desc}</td>
+                <td class="p-3 border-b border-slate-50">${ref}</td>
+                <td class="p-3 border-b border-slate-50 text-right text-rose-600 font-medium">-${formatMoney(monto)}</td>
+            `;
+            tbody.insertBefore(tr, tbody.firstChild);
+
+            document.getElementById('servicioDesc').value = '';
+            document.getElementById('servicioMonto').value = '';
+            document.getElementById('servicioRef').value = '';
+
+            showNotification(`Egreso registrado: ${desc}`);
+        }
+
+        function exportReceiptPDF() {
+            if(!currentEditingApto) return;
+            showNotification("Generando Recibo, espere un momento...");
+            const element = document.getElementById('printable-receipt');
+            const opt = {
+                margin:       [0.5, 0.5],
+                filename:     `Recibo_Apto_${currentEditingApto}_Villacoa.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save().then(() => showNotification("Recibo PDF descargado"));
+        }
+
+        // Sistema de notificaciones (Toasts)
+        function showNotification(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'bg-slate-800 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 transform translate-x-full transition-all duration-300';
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> <span class="text-sm font-medium">${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            // Animar entrada
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-x-full');
+            });
+            
+            // Remover después de 3s
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Arrancar la aplicación al cargar el DOM
+        window.onload = function() {
+            updateDashboard(mockData); // Inicializa tabla y KPIs con todos los datos
+            updateHistorico(mockData); // Inicializa tabla del histórico
+            initCharts(); // Renderiza gráficos
+            initSelectAptos(); // Carga la lista de aptos en el registro de pagos
+            
+            // Renderiza la vista previa en la pestaña Propietarios
+            setTimeout(updateExportPreview, 100); 
+        };
+    </script>
+</body>
+</html>
