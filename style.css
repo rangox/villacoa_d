@@ -1,0 +1,90 @@
+/* ==========================================================================
+   Estilos Personalizados - Dashboard Residencias Villacoa
+   Nota: El 90% del diseño es manejado por Tailwind CSS. 
+   Aquí definimos animaciones, scrollbars y reglas de impresión.
+   ========================================================================== */
+
+/* --- 1. Manejo de Vistas (Pestañas) e Inyecciones de Animación --- */
+.view { 
+    display: none; 
+}
+
+.view.active { 
+    display: block; 
+    animation: fadeIn 0.3s ease-in-out; 
+}
+
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(10px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+/* --- 2. Estilos de Tablas y Encabezados Fijos --- */
+.table-container { 
+    max-height: 60vh; 
+    overflow-y: auto; 
+    /* Borde sutil para el contenedor de la tabla */
+    border: 1px solid #e5e7eb;
+}
+
+thead th { 
+    position: sticky; 
+    top: 0; 
+    background-color: #f3f4f6; 
+    z-index: 10; 
+    /* Sombra sutil debajo del encabezado fijo */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* --- 3. Reglas de Impresión (Para los Recibos y Reportes) --- */
+@media print {
+    /* Ocultar elementos que no deben salir en papel (menús, botones) */
+    .no-print { 
+        display: none !important; 
+    }
+    
+    .print-only { 
+        display: block !important; 
+    }
+    
+    body { 
+        background-color: white !important; 
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Asegurar que el modal del recibo ocupe toda la página al imprimir */
+    #modal-recibo {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: white;
+    }
+}
+
+/* --- 4. Personalización del Scrollbar (Estilo Moderno) --- */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
