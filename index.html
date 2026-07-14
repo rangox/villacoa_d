@@ -551,8 +551,7 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            // Usar Custom Dialog en vez del confirm bloqueante
-            showDialog('Confirmar Importación', `¿Deseas procesar el archivo "${file.name}"?\nEsta acción calculará todas las deudas de Julio.`, true, () => {
+            showDialog('Confirmar Importación', `¿Deseas procesar el archivo "${file.name}"?\nEsta acción calculará todas las deudas del mes.`, true, () => {
                 const btnImportar = event.target.nextElementSibling;
                 const originalBtnHtml = btnImportar.innerHTML;
                 btnImportar.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Procesando Archivo...';
@@ -564,72 +563,74 @@
                         const data = new Uint8Array(e.target.result);
                         const workbook = XLSX.read(data, {type: 'array'});
                         const firstSheet = workbook.SheetNames[0];
-                        // defval '' asegura que las columnas vacías no se salten, manteniendo la cuadrícula perfecta
                         const jsonMatriz = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], {header: 1, defval: ''});
                         
                         let propietariosAImportar = [];
-                        
-                        // --- MAPEO DINÁMICO DE COLUMNAS (Solución a la desalineación) ---
-                        let hIdx = -1; // Fila donde están los encabezados
-                        let cApto = -1, cNombre = -1, c22 = -1, c23 = -1, c24 = -1, c25 = -1, c26 = -1, cJul = -1, cAbono = -1;
+                        let hIdx = -1;
+                        let offset = 0;
 
-                        // 1. Buscar la fila real de títulos (Ignora basura arriba)
-                        for (let i = 0; i < Math.min(30, jsonMatriz.length); i++) {
-                            const fila = jsonMatriz[i];
-                            if (!fila) continue;
-                            const filaStr = fila.join('').toLowerCase();
-                            
-                            if (filaStr.includes('apto') || filaStr.includes('apartamento') || filaStr.includes('propietario')) {
+                        // 1. Buscar la fila de encabezados en las primeras 20 líneas
+                        for (let i = 0; i < Math.min(20, jsonMatriz.length); i++) {
+                            const filaStr = jsonMatriz[i].join('').toLowerCase();
+                            if (filaStr.includes('apto') || filaStr.includes('apartamento') || filaStr.includes('propietario') || filaStr.includes('nombre')) {
                                 hIdx = i;
-                                // Identificar en qué posición exacta está cada columna
-                                for (let j = 0; j < fila.length; j++) {
-                                    let cell = (fila[j] || '').toString().toLowerCase().trim();
-                                    if (cell === 'apto' || cell === 'apartamento') cApto = j;
-                                    else if (cell === 'propietario' || cell === 'nombre') cNombre = j;
-                                    else if (cell === '2022') c22 = j;
-                                    else if (cell === '2023') c23 = j;
-                                    else if (cell === '2024') c24 = j;
-                                    else if (cell === '2025') c25 = j;
-                                    else if (cell.includes('ene') || cell.includes('jun')) c26 = j; 
-                                    else if (cell.includes('jul')) cJul = j;
-                                    else if (cell.includes('abono') || cell.includes('pago')) cAbono = j;
-                                }
                                 break;
                             }
                         }
 
-                        // Si por algún motivo no encuentra los títulos, asume orden estricto saltando la columna A si está vacía
-                        if (hIdx === -1) {
-                            hIdx = 0; 
-                            let offset = (!jsonMatriz[1][0] || jsonMatriz[1][0] === ',') ? 1 : 0;
-                            cApto = offset; cNombre = offset + 1; c22 = offset + 2; c23 = offset + 3; 
-                            c24 = offset + 4; c25 = offset + 5; c26 = offset + 6; cJul = offset + 7; cAbono = offset + 8;
+                        // Calcular cuántas columnas vacías hay a la izquierda (desalineación)
+                        const filaMuestra = jsonMatriz[hIdx !== -1 ? hIdx : 1] || [];
+                        for(let j = 0; j < filaMuestra.length; j++) {
+                            if(filaMuestra[j] !== '' && filaMuestra[j] !== ',') { offset = j; break; }
                         }
 
-                        // Parseo de números seguro (maneja formato $ y comas)
+                        let cApto = offset, cNombre = offset + 1, c22 = offset + 2, c23 = offset + 3, 
+                            c24 = offset + 4, c25 = offset + 5, c26 = offset + 6, cJul = offset + 7, cAbono = offset + 8;
+
+                        // Mapeo preciso si encontró títulos
+                        if(hIdx !== -1) {
+                            const headers = jsonMatriz[hIdx];
+                            for (let j = 0; j < headers.length; j++) {
+                                let val = headers[j].toString().toLowerCase().trim();
+                                if (val.includes('apto') || val.includes('apartamento')) cApto = j;
+                                else if (val.includes('propietario') || val.includes('nombre')) cNombre = j;
+                                else if (val.includes('2022')) c22 = j;
+                                else if (val.includes('2023')) c23 = j;
+                                else if (val.includes('2024')) c24 = j;
+                                else if (val.includes('2025')) c25 = j;
+                                else if (val.includes('ene') || val.includes('jun')) c26 = j; 
+                                else if (val.includes('jul')) cJul = j;
+                                else if (val.includes('abono') || val.includes('pago')) cAbono = j;
+                            }
+                        }
+
                         const parseNum = (val) => {
                             if (!val) return 0;
                             if (typeof val === 'number') return val;
                             let str = val.toString().replace(/\$/g, '').trim();
                             if (str.includes(',') && str.includes('.')) {
                                 str = str.indexOf(',') > str.indexOf('.') ? str.replace(/\./g, '').replace(',', '.') : str.replace(/,/g, '');
-                            } else if (str.includes(',')) {
-                                str = str.replace(',', '.');
-                            }
+                            } else if (str.includes(',')) str = str.replace(',', '.');
                             return parseFloat(str) || 0;
                         };
 
-                        // 2. Extraer datos fila por fila
-                        for (let i = hIdx + 1; i < jsonMatriz.length; i++) {
+                        const startRow = hIdx !== -1 ? hIdx + 1 : 1;
+
+                        // 2. Extraer datos con tolerancia a errores de columna
+                        for (let i = startRow; i < jsonMatriz.length; i++) {
                             const fila = jsonMatriz[i];
                             if (!fila || fila.length === 0) continue;
                             
-                            let aptoVal = cApto !== -1 ? (fila[cApto] || '').toString().trim() : '';
-                            let nombreVal = cNombre !== -1 ? (fila[cNombre] || '').toString().trim() : '';
+                            let aptoVal = fila[cApto] ? fila[cApto].toString().trim() : '';
+                            let nombreVal = fila[cNombre] ? fila[cNombre].toString().trim() : '';
 
-                            // Filtro de limpieza: Ignorar filas rotas, vacías, basuras como "," o filas de Totales de excel
-                            if (!aptoVal || aptoVal === ',' || aptoVal.toLowerCase().includes('total')) continue;
-                            if (aptoVal.length > 10) continue; // Un número de Apto legítimo (ej PB-A, 12-C) no supera los 10 caracteres
+                            // Si el Apto está vacío por alguna coma atravesada, intentamos rodar la lectura un espacio a la derecha
+                            if(aptoVal === '' || aptoVal === ',') {
+                                aptoVal = fila[cApto+1] ? fila[cApto+1].toString().trim() : '';
+                                nombreVal = fila[cNombre+1] ? fila[cNombre+1].toString().trim() : '';
+                            }
+
+                            if (!aptoVal || aptoVal === ',' || aptoVal.toLowerCase().includes('total') || aptoVal.length > 15) continue;
 
                             propietariosAImportar.push({
                                 apto: aptoVal,
@@ -644,28 +645,50 @@
                             });
                         }
 
+                        // 3. ULTIMATE FALLBACK: Si no detectó nada (ej. un Excel sin títulos o malformado), lee la matriz a la fuerza bruta saltando celdas vacías
                         if (propietariosAImportar.length === 0) {
-                            showDialog('Error', 'No se detectaron apartamentos válidos.\n\nAsegúrese de subir el archivo "ESTADO DE CUENTA AL 12 JULIO 2026 VILLACOA.xlsx"');
+                            for (let i = 0; i < jsonMatriz.length; i++) {
+                                // Filtramos cualquier celda que esté completamente vacía o sea solo una coma
+                                const filaLimpia = jsonMatriz[i].filter(val => val !== '' && val !== null && val.toString().trim() !== ',');
+                                if(filaLimpia.length < 2) continue; // Si la fila no tiene al menos Apto y Nombre, la ignoramos
+                                
+                                let aptoVal = filaLimpia[0].toString().trim();
+                                if (aptoVal.toLowerCase().includes('total') || aptoVal.toLowerCase().includes('apto') || aptoVal.length > 15) continue;
+
+                                propietariosAImportar.push({
+                                    apto: aptoVal,
+                                    nombre: filaLimpia[1] ? filaLimpia[1].toString().trim() : 'Sin Nombre',
+                                    y22: parseNum(filaLimpia[2]), 
+                                    y23: parseNum(filaLimpia[3]),
+                                    y24: parseNum(filaLimpia[4]), 
+                                    y25: parseNum(filaLimpia[5]),
+                                    y26_ej: parseNum(filaLimpia[6]), 
+                                    jul26: parseNum(filaLimpia[7]),  
+                                    abono: parseNum(filaLimpia[8])
+                                });
+                            }
+                        }
+
+                        if (propietariosAImportar.length === 0) {
+                            showDialog('Error', 'No se pudieron extraer los datos.\nPor favor, verifica que el archivo no esté vacío y contenga filas con el número de Apartamento y Propietario.');
                             return;
                         }
 
-                        // Alimentar la memoria local
                         baseDatosVecinos = propietariosAImportar;
                         procesarTablasUI();
-                        showDialog('¡Importación Exitosa!', `Se procesaron correctamente y se calcularon deudas para ${propietariosAImportar.length} apartamentos.`);
+                        showDialog('¡Importación Exitosa!', `Se procesaron y calcularon las deudas de ${propietariosAImportar.length} apartamentos automáticamente.`);
 
                     } catch (error) {
                         console.error(error);
-                        showDialog('Error de Lectura', 'No se pudo leer el archivo. Verifique que sea un formato Excel válido.');
+                        showDialog('Error de Lectura', 'No se pudo leer el archivo. Verifique que sea un Excel válido (.xlsx o .csv).');
                     } finally {
                         btnImportar.innerHTML = originalBtnHtml;
                         btnImportar.disabled = false;
-                        event.target.value = ''; // Resetear input
+                        event.target.value = ''; 
                     }
                 };
                 reader.readAsArrayBuffer(file);
             }, () => {
-                // Si el usuario cancela
                 event.target.value = '';
             });
         }
