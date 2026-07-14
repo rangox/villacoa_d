@@ -390,7 +390,7 @@
             html2pdf().set(opt).from(element).save();
         }
 
-        // Base de datos local (Fallback robusto para cuando no carga la API en la vista previa)
+        // Base de datos local (Inicia 100% vacía, esperando el Excel)
         let baseDatosVecinos = [];
 
         async function inicializarSistemaNube() {
@@ -401,7 +401,7 @@
                 const respuesta = await fetch('/api/getPropietarios').catch(() => null);
                 
                 if (!respuesta || !respuesta.ok) {
-                    console.warn("API no disponible (modo vista previa local). Cargando datos de prueba.");
+                    console.warn("API no disponible. Iniciando en modo local (vacío).");
                     cargarDatosLocales();
                     return;
                 }
@@ -420,7 +420,7 @@
         }
 
         function cargarDatosLocales() {
-            // Limpiamos los datos falsos. Ahora el sistema inicia 100% en blanco.
+            // El sistema arranca completamente en blanco. Cero datos predeterminados.
             baseDatosVecinos = [];
             procesarTablasUI();
         }
@@ -434,16 +434,22 @@
             tbodyDashboard.innerHTML = ''; tbodyHistorico.innerHTML = ''; tbodyPreview.innerHTML = ''; 
             selectApto.innerHTML = '<option value="">-- Seleccione un propietario --</option>';
 
-            // Si no hay datos (porque se limpiaron y no se ha importado el Excel), mostramos el aviso.
+            // Interfaz de Estado Vacío (Cuando aún no se sube el Excel)
             if (baseDatosVecinos.length === 0) {
-                const mensajeVacio = `<tr><td colspan="10" class="text-center p-8 text-gray-500 bg-gray-50">
-                    <i class="fas fa-folder-open text-3xl mb-3 text-gray-400"></i><br>
+                const mensajeDashboard = `<tr><td colspan="5" class="text-center p-8 text-gray-500 bg-gray-50">
+                    <i class="fas fa-file-excel text-4xl mb-3 text-green-600 opacity-60"></i><br>
                     No hay datos registrados en el sistema.<br>Por favor, vaya a la pestaña <b>"Histórico de Deudas"</b> e importe su archivo Excel.
                 </td></tr>`;
                 
-                tbodyDashboard.innerHTML = mensajeVacio.replace('colspan="10"', 'colspan="5"');
-                tbodyHistorico.innerHTML = mensajeVacio;
-                tbodyPreview.innerHTML = mensajeVacio.replace('colspan="10"', 'colspan="4"');
+                const mensajeHistorico = `<tr><td colspan="10" class="text-center p-16 text-gray-500 bg-white border-2 border-dashed border-gray-300 rounded-lg">
+                    <i class="fas fa-file-import text-5xl mb-4 text-green-500"></i><br>
+                    <span class="text-xl font-bold text-gray-700">El Histórico está vacío</span><br>
+                    Haga clic en el botón verde "Importar Excel" arriba para alimentar el sistema.
+                </td></tr>`;
+                
+                tbodyDashboard.innerHTML = mensajeDashboard;
+                tbodyHistorico.innerHTML = mensajeHistorico;
+                tbodyPreview.innerHTML = mensajeDashboard.replace('colspan="5"', 'colspan="4"');
                 
                 document.getElementById('kpi-deuda').innerText = '$0.00';
                 document.getElementById('kpi-recaudado').innerText = '$0.00';
