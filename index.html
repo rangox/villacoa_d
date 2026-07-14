@@ -524,6 +524,15 @@
                         <td class="p-2 text-right font-bold ${deudaFinal > 0 ? 'text-red-600' : 'text-slate-700'} bg-slate-100/50">$${deudaFinal.toFixed(2)}</td>
                     </tr>`;
 
+                // Inyección Reportes (Vista Previa)
+                tbodyPreview.innerHTML += `
+                    <tr class="border-b hover:bg-gray-50 transition">
+                        <td class="p-2 border-b col-apto-view font-medium">${v.apto}</td>
+                        <td class="p-2 border-b col-nombre-view text-xs">${v.nombre}</td>
+                        <td class="p-2 border-b col-estado-view text-center">${estado}</td>
+                        <td class="p-2 border-b col-deuda-view text-right font-bold ${deudaFinal > 0 ? 'text-red-600' : 'text-emerald-600'}">$${deudaFinal.toFixed(2)}</td>
+                    </tr>`;
+
                 // Opciones para Pagos
                 selectApto.innerHTML += `<option value="${v.apto}" data-deuda="${deudaFinal}">Apto ${v.apto} - ${v.nombre}</option>`;
             });
@@ -742,6 +751,60 @@
         function cerrarRecibo() { 
             document.getElementById('modal-recibo').classList.add('hidden'); 
         }
+
+        // Lógica para exportar reportes especiales
+        function exportarReporte(tipo) {
+            if(baseDatosVecinos.length === 0) {
+                showDialog('Aviso', 'No hay datos cargados para generar el reporte. Importe un Excel primero.');
+                return;
+            }
+            
+            if (tipo === 'pdf') {
+                document.getElementById('reporte-header').classList.remove('hidden');
+                descargarPDF('reporte-limpio', 'Reporte_Propietarios_Jul26');
+                // Ocultar header de nuevo tras un segundo para no afectar la vista previa web
+                setTimeout(() => document.getElementById('reporte-header').classList.add('hidden'), 1000);
+            } else if (tipo === 'csv') {
+                let csvContent = "data:text/csv;charset=utf-8,";
+                let headers = [];
+                // Validar qué columnas quiere ver el usuario
+                if(document.getElementById('col-apto').checked) headers.push("Apartamento");
+                if(document.getElementById('col-nombre').checked) headers.push("Propietario");
+                if(document.getElementById('col-estado').checked) headers.push("Estado");
+                if(document.getElementById('col-deuda').checked) headers.push("Deuda Total");
+                csvContent += headers.join(",") + "\n";
+                
+                const rows = document.getElementById('tbody-preview').getElementsByTagName('tr');
+                for(let row of rows) {
+                    let rowData = [];
+                    if(document.getElementById('col-apto').checked) rowData.push(row.cells[0].innerText.replace(/,/g, ''));
+                    if(document.getElementById('col-nombre').checked) rowData.push('"' + row.cells[1].innerText.replace(/"/g, '""') + '"'); // Comillas por si el nombre trae comas
+                    if(document.getElementById('col-estado').checked) rowData.push(row.cells[2].innerText.replace(/,/g, ''));
+                    if(document.getElementById('col-deuda').checked) rowData.push(row.cells[3].innerText.replace(/\$/g, '').replace(/,/g, ''));
+                    csvContent += rowData.join(",") + "\n";
+                }
+                
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "Reporte_Propietarios_Jul26.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        // Filtros dinámicos de columnas para la vista de reportes
+        ['apto', 'nombre', 'estado', 'deuda'].forEach(col => {
+            const checkbox = document.getElementById(`col-${col}`);
+            if(checkbox) {
+                checkbox.addEventListener('change', (e) => {
+                    const elements = document.querySelectorAll(`.col-${col}-view`);
+                    // Mostrar u ocultar celdas basándose en el estado del checkbox
+                    elements.forEach(el => el.style.display = e.target.checked ? '' : 'none');
+                });
+            }
+        });
 
         // Buscadores reactivos
         document.getElementById('search-dashboard').addEventListener('keyup', function() {
