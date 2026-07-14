@@ -420,12 +420,8 @@
         }
 
         function cargarDatosLocales() {
-            baseDatosVecinos = [
-                {apto: 'PB-A', nombre: 'GREISMAR MUNDARAI', y22: 0, y23: 0, y24: 0, y25: 0, y26_em: 0, jun26: 0, abono: 0},
-                {apto: '1-B', nombre: 'EDGAR CORDERO', y22: 0, y23: 0, y24: 179.46, y25: 92.89, y26_em: 22.27, jun26: 50, abono: 0},
-                {apto: '12-B', nombre: 'CLAUDIA OLIVARES', y22: 127.50, y23: 180.95, y24: 228.87, y25: 77.09, y26_em: 22.27, jun26: 150, abono: 0},
-                {apto: '13-C', nombre: 'LILIA ROMERO', y22: 130.87, y23: 153.28, y24: 196.21, y25: 228.87, y26_em: 77.09, jun26: 22.27, abono: 15}
-            ];
+            // Limpiamos los datos falsos. Ahora el sistema inicia 100% en blanco.
+            baseDatosVecinos = [];
             procesarTablasUI();
         }
 
@@ -437,6 +433,23 @@
             
             tbodyDashboard.innerHTML = ''; tbodyHistorico.innerHTML = ''; tbodyPreview.innerHTML = ''; 
             selectApto.innerHTML = '<option value="">-- Seleccione un propietario --</option>';
+
+            // Si no hay datos (porque se limpiaron y no se ha importado el Excel), mostramos el aviso.
+            if (baseDatosVecinos.length === 0) {
+                const mensajeVacio = `<tr><td colspan="10" class="text-center p-8 text-gray-500 bg-gray-50">
+                    <i class="fas fa-folder-open text-3xl mb-3 text-gray-400"></i><br>
+                    No hay datos registrados en el sistema.<br>Por favor, vaya a la pestaña <b>"Histórico de Deudas"</b> e importe su archivo Excel.
+                </td></tr>`;
+                
+                tbodyDashboard.innerHTML = mensajeVacio.replace('colspan="10"', 'colspan="5"');
+                tbodyHistorico.innerHTML = mensajeVacio;
+                tbodyPreview.innerHTML = mensajeVacio.replace('colspan="10"', 'colspan="4"');
+                
+                document.getElementById('kpi-deuda').innerText = '$0.00';
+                document.getElementById('kpi-recaudado').innerText = '$0.00';
+                document.getElementById('kpi-morosos').innerText = '0';
+                return;
+            }
 
             let deudaGlobal = 0, recaudoGlobal = 0, morosos = 0;
             const CUOTA_BASE = 22.27;
