@@ -18,4 +18,4 @@ export default async function handler(req, res) {
   } else {
     res.status(405).json({ message: 'Solo se permite el método POST' });
   }
-}
+} 
