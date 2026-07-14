@@ -3,120 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Villacoa - Sistema de Gestión</title>
-    <!-- Tailwind CSS (CDN Estable) -->
+    <title>Villacoa - Sistema de Gestión</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome (CDN Estable) -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
-    <!-- SheetJS para Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <style>
         .view { display: none; }
-        .view.active { display: block; animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .table-container { max-height: 60vh; overflow-y: auto; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .view.active { display: block; }
+        @media print { .no-print { display: none; } .print-only { display: block; } }
     </style>
 </head>
-<body class="bg-gray-100 font-sans text-gray-900">
+<body class="bg-gray-50 font-sans text-gray-900">
 
     <div class="flex h-screen overflow-hidden">
-        <!-- Sidebar -->
-        <aside class="w-64 bg-slate-900 text-white flex flex-col p-4">
-            <div class="text-center py-6 border-b border-slate-700 mb-4">
-                <h1 class="text-xl font-bold text-blue-400">VILLACOA</h1>
-            </div>
+        <aside class="w-64 bg-slate-900 text-white p-4 flex flex-col">
+            <h1 class="text-xl font-bold text-blue-400 mb-8 text-center">VILLACOA</h1>
             <nav class="space-y-2 flex-1">
-                <button onclick="changeView('dashboard')" class="w-full text-left p-3 rounded hover:bg-slate-800 transition"><i class="fas fa-chart-line mr-2"></i> Dashboard</button>
-                <button onclick="changeView('historico')" class="w-full text-left p-3 rounded hover:bg-slate-800 transition"><i class="fas fa-history mr-2"></i> Histórico</button>
-                <button onclick="changeView('reportes')" class="w-full text-left p-3 rounded hover:bg-slate-800 transition"><i class="fas fa-file-alt mr-2"></i> Reportes</button>
+                <button onclick="showView('dashboard')" class="w-full text-left p-3 hover:bg-slate-800 rounded"><i class="fas fa-chart-line mr-2"></i> Dashboard</button>
+                <button onclick="showView('historico')" class="w-full text-left p-3 hover:bg-slate-800 rounded"><i class="fas fa-file-excel mr-2"></i> Importar Datos</button>
+                <button onclick="showView('recibos')" class="w-full text-left p-3 hover:bg-slate-800 rounded"><i class="fas fa-receipt mr-2"></i> Generar Recibos</button>
             </nav>
         </aside>
 
-        <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto p-6">
+        <main class="flex-1 overflow-y-auto p-8">
             <div id="view-dashboard" class="view active">
-                <h2 class="text-2xl font-bold mb-6">Dashboard General</h2>
-                <div id="dashboard-content" class="text-center py-20 bg-white rounded-lg shadow border">
-                    <i class="fas fa-upload text-4xl text-gray-300 mb-4"></i>
-                    <p class="text-gray-500">Cargue su archivo en "Histórico" para ver las estadísticas.</p>
+                <h2 class="text-2xl font-bold mb-6">Resumen General</h2>
+                <div id="dashboard-stats" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Stats will be injected here -->
                 </div>
             </div>
 
             <div id="view-historico" class="view">
-                <h2 class="text-2xl font-bold mb-6">Histórico de Movimientos</h2>
-                <div class="bg-white p-6 rounded shadow">
-                    <input type="file" id="excel-input" class="hidden" accept=".xlsx, .xls">
-                    <button onclick="document.getElementById('excel-input').click()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-                        <i class="fas fa-file-excel mr-2"></i> Importar Excel
-                    </button>
-                    <div id="table-historico-wrapper" class="mt-6"></div>
-                </div>
+                <h2 class="text-2xl font-bold mb-4">Importar Histórico (Excel)</h2>
+                <input type="file" id="excel-input" class="hidden" accept=".xlsx,.xls">
+                <button onclick="document.getElementById('excel-input').click()" class="bg-blue-600 text-white px-6 py-3 rounded shadow hover:bg-blue-700">
+                    <i class="fas fa-upload mr-2"></i> Seleccionar Archivo Excel
+                </button>
+                <div id="data-preview" class="mt-6 bg-white p-4 rounded shadow border"></div>
             </div>
 
-            <div id="view-reportes" class="view">
-                <h2 class="text-2xl font-bold mb-6">Reportes Especiales</h2>
-                <div id="reporte-content" class="bg-white p-6 rounded shadow"></div>
+            <div id="view-recibos" class="view">
+                <h2 class="text-2xl font-bold mb-4">Generador de Recibos</h2>
+                <div class="bg-white p-6 rounded shadow">
+                    <label class="block mb-2 font-bold">Seleccionar Apartamento:</label>
+                    <select id="select-apto" class="w-full p-2 border rounded mb-4" onchange="previewReceipt()"></select>
+                    <div id="receipt-preview" class="border p-8 bg-white max-w-2xl mx-auto hidden">
+                        <!-- Receipt content will be rendered here -->
+                    </div>
+                    <button onclick="window.print()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded no-print">Imprimir Recibo</button>
+                </div>
             </div>
         </main>
     </div>
 
     <script>
-        // Lógica Global del sistema sin dependencias externas riesgosas
-        let baseDatos = [];
+        let appData = [];
 
-        function changeView(id) {
+        function showView(id) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById('view-' + id).classList.add('active');
         }
 
-        document.getElementById('excel-input').addEventListener('change', function(e) {
+        // Processing Excel Logic
+        document.getElementById('excel-input').addEventListener('change', (e) => {
             const file = e.target.files[0];
             const reader = new FileReader();
-            
-            reader.onload = function(evt) {
-                try {
-                    const data = new Uint8Array(evt.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const sheetName = workbook.SheetNames[0];
-                    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-                    
-                    // Procesamiento inteligente
-                    procesarDatos(jsonData);
-                } catch (err) {
-                    console.error("Error al leer:", err);
-                    alert("No se pudo leer el archivo. Asegúrese de que sea un Excel válido.");
-                }
+            reader.onload = (evt) => {
+                const workbook = XLSX.read(evt.target.result, {type: 'array'});
+                const data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                appData = data;
+                updateApp();
             };
             reader.readAsArrayBuffer(file);
         });
 
-        function procesarDatos(data) {
-            baseDatos = data;
-            renderHistorico();
-            alert("Datos importados correctamente. Total de registros: " + data.length);
+        function updateApp() {
+            // Fill Select
+            const sel = document.getElementById('select-apto');
+            sel.innerHTML = '<option value="">Seleccione...</option>';
+            appData.forEach(row => {
+                const apto = row['Apto'] || row['apto'] || row[Object.keys(row)[0]];
+                sel.innerHTML += `<option value="${apto}">${apto}</option>`;
+            });
+            alert("Datos cargados correctamente");
+            showView('dashboard');
         }
 
-        function renderHistorico() {
-            const container = document.getElementById('table-historico-wrapper');
-            if(baseDatos.length === 0) return;
-
-            let html = `<table class="w-full text-sm border-collapse">
-                <thead><tr class="bg-gray-100 border-b">
-                    <th class="p-2">Apto</th><th class="p-2">Propietario</th><th class="p-2">Deuda Total</th>
-                </tr></thead><tbody>`;
-
-            baseDatos.forEach(row => {
-                // Ajustar claves según los nombres reales del Excel
-                const apto = row['Apto'] || row['apto'] || "N/A";
-                const nombre = row['Propietario'] || row['nombre'] || "Sin nombre";
-                html += `<tr><td class="p-2 border">${apto}</td><td class="p-2 border">${nombre}</td></tr>`;
-            });
-
-            html += `</tbody></table>`;
-            container.innerHTML = html;
+        function previewReceipt() {
+            const apto = document.getElementById('select-apto').value;
+            if(!apto) return;
+            
+            const record = appData.find(r => (r['Apto'] || r['apto'] || r[Object.keys(r)[0]]) == apto);
+            const receipt = document.getElementById('receipt-preview');
+            
+            receipt.classList.remove('hidden');
+            receipt.innerHTML = `
+                <div class="text-center mb-6">
+                    <h1 class="text-2xl font-bold">RESIDENCIAS VILLACOA</h1>
+                    <p>Fecha Emisión: ${new Date().toLocaleDateString()}</p>
+                </div>
+                <div class="mb-6">
+                    <p><strong>Apto:</strong> ${apto}</p>
+                    <p><strong>Propietario:</strong> ${record['Propietario'] || 'N/A'}</p>
+                </div>
+                <table class="w-full border-t border-b mb-6">
+                    <tr class="font-bold border-b"><td>Descripción</td><td class="text-right">Monto</td></tr>
+                    <tr><td>Gastos Comunes</td><td class="text-right">$12,920.10</td></tr>
+                    <tr><td>Cuota Alícuota</td><td class="text-right">$667.05</td></tr>
+                    <tr class="font-bold bg-gray-100"><td>TOTAL A PAGAR</td><td class="text-right">${record['Deuda Total'] || '$0.00'}</td></tr>
+                </table>
+            `;
         }
     </script>
 </body>
