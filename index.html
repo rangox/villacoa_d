@@ -3,829 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Residencias Villacoa</title>
-    <!-- Tailwind CSS -->
+    <title>Dashboard Villacoa - Sistema de Gestión</title>
+    <!-- Tailwind CSS (CDN Estable) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- HTML2PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <!-- SheetJS (Para leer Excel) -->
+    <!-- FontAwesome (CDN Estable) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <!-- SheetJS para Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
         .view { display: none; }
         .view.active { display: block; animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @media print {
-            .no-print { display: none !important; }
-            .print-only { display: block !important; }
-            body { background-color: white !important; margin: 0; padding: 0; }
-            #modal-recibo { position: absolute; top: 0; left: 0; width: 100%; background: white; }
-        }
-        .table-container { max-height: 60vh; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 0.5rem; }
-        thead th { position: sticky; top: 0; background-color: #f8fafc; z-index: 10; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
-        
-        /* Personalización del Scrollbar */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .table-container { max-height: 60vh; overflow-y: auto; }
+        ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-gray-50 flex h-screen overflow-hidden font-sans text-gray-800">
+<body class="bg-gray-100 font-sans text-gray-900">
 
-    <aside class="w-64 bg-slate-900 text-white flex flex-col no-print transition-all duration-300">
-        <div class="p-6 text-center border-b border-slate-800">
-            <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
-                <i class="fas fa-building text-2xl"></i>
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-slate-900 text-white flex flex-col p-4">
+            <div class="text-center py-6 border-b border-slate-700 mb-4">
+                <h1 class="text-xl font-bold text-blue-400">VILLACOA</h1>
             </div>
-            <h1 class="text-lg font-bold tracking-wider">RESIDENCIAS</h1>
-            <h2 class="text-xl font-light text-blue-400">VILLACOA</h2>
-        </div>
-        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-            <button onclick="changeView('dashboard')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium active-nav bg-slate-800 border-l-4 border-blue-500">
-                <i class="fas fa-chart-pie w-6 text-blue-400"></i> Dashboard General
-            </button>
-            <button onclick="changeView('historico')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium">
-                <i class="fas fa-history w-6 text-green-400"></i> Histórico de Deudas
-            </button>
-            <button onclick="changeView('propietarios')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium">
-                <i class="fas fa-users w-6 text-purple-400"></i> Propietarios (Reportes)
-            </button>
-            <button onclick="changeView('pagos')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium">
-                <i class="fas fa-hand-holding-dollar w-6 text-emerald-400"></i> Registrar Pago
-            </button>
-            <button onclick="changeView('egresos')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium">
-                <i class="fas fa-file-invoice-dollar w-6 text-red-400"></i> Gastos del Edificio
-            </button>
-        </nav>
-        <div class="p-4 border-t border-slate-800 text-xs text-slate-400 text-center">
-            Estado de Cuenta<br>12 de Julio 2026
-        </div>
-    </aside>
+            <nav class="space-y-2 flex-1">
+                <button onclick="changeView('dashboard')" class="w-full text-left p-3 rounded hover:bg-slate-800 transition"><i class="fas fa-chart-line mr-2"></i> Dashboard</button>
+                <button onclick="changeView('historico')" class="w-full text-left p-3 rounded hover:bg-slate-800 transition"><i class="fas fa-history mr-2"></i> Histórico</button>
+                <button onclick="changeView('reportes')" class="w-full text-left p-3 rounded hover:bg-slate-800 transition"><i class="fas fa-file-alt mr-2"></i> Reportes</button>
+            </nav>
+        </aside>
 
-    <main class="flex-1 flex flex-col h-screen overflow-y-auto relative">
-        <header class="bg-white shadow-sm p-4 flex justify-between items-center no-print border-b border-gray-200 z-20">
-            <div>
-                <h2 class="text-2xl font-bold text-gray-800" id="header-title">Dashboard General</h2>
-                <p class="text-sm text-gray-500"><i class="fas fa-calendar-alt mr-1"></i> Sincronizado al <span class="font-semibold text-blue-600">12 Julio 2026</span></p>
-            </div>
-            <div class="flex space-x-4">
-                <div class="text-right text-xs bg-blue-50 text-blue-800 p-2 rounded border border-blue-100 shadow-sm hidden md:block">
-                    <p class="font-bold">Banco Exterior: C.C. 0115-004806-048-0034493</p>
-                    <p>RIF: J-31455419-0 | residenciasvillacoa@gmail.com</p>
-                </div>
-            </div>
-        </header>
-
-        <div class="p-6 relative flex-1 bg-gray-50">
-
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto p-6">
             <div id="view-dashboard" class="view active">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500 flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 font-bold uppercase">Deuda Total</p>
-                            <h3 class="text-2xl font-bold text-gray-800" id="kpi-deuda">$0.00</h3>
-                        </div>
-                        <i class="fas fa-exclamation-circle text-3xl text-red-100"></i>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500 flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 font-bold uppercase">Recaudado (Abonos)</p>
-                            <h3 class="text-2xl font-bold text-gray-800" id="kpi-recaudado">$0.00</h3>
-                        </div>
-                        <i class="fas fa-check-circle text-3xl text-green-100"></i>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-orange-500 flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 font-bold uppercase">Aptos Morosos</p>
-                            <h3 class="text-2xl font-bold text-gray-800" id="kpi-morosos">0</h3>
-                        </div>
-                        <i class="fas fa-users text-3xl text-orange-100"></i>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500 flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 font-bold uppercase">Cuota Base</p>
-                            <h3 class="text-2xl font-bold text-gray-800">$22.27</h3>
-                        </div>
-                        <i class="fas fa-home text-3xl text-blue-100"></i>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4" id="export-dashboard-area">
-                    <div class="flex justify-between items-center mb-4 no-print flex-wrap gap-2">
-                        <h3 class="text-lg font-bold text-gray-700">Estado de Cuenta por Apartamento</h3>
-                        <div class="flex space-x-2 w-full md:w-auto">
-                            <input type="text" id="search-dashboard" placeholder="Buscar Apto o Propietario..." class="border border-gray-300 rounded px-3 py-1.5 focus:ring-2 focus:ring-blue-500 text-sm flex-1 md:w-64">
-                            <button onclick="descargarPDF('export-dashboard-area', 'Resumen_Villacoa_Jul26')" class="bg-gray-800 text-white px-4 py-1.5 rounded hover:bg-gray-700 text-sm shadow transition font-medium"><i class="fas fa-file-pdf mr-1"></i> Exportar PDF</button>
-                        </div>
-                    </div>
-                    
-                    <div class="table-container">
-                        <table class="w-full text-left text-sm" id="tabla-dashboard">
-                            <thead class="bg-slate-100 text-slate-700">
-                                <tr>
-                                    <th class="p-3 border-b font-semibold">Apto</th>
-                                    <th class="p-3 border-b font-semibold">Propietario</th>
-                                    <th class="p-3 border-b text-center font-semibold">Estado</th>
-                                    <th class="p-3 border-b text-right font-semibold">Deuda Total</th>
-                                    <th class="p-3 border-b text-center no-print font-semibold">Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-dashboard" class="text-gray-700">
-                                <!-- Filas inyectadas por JS -->
-                            </tbody>
-                        </table>
-                    </div>
+                <h2 class="text-2xl font-bold mb-6">Dashboard General</h2>
+                <div id="dashboard-content" class="text-center py-20 bg-white rounded-lg shadow border">
+                    <i class="fas fa-upload text-4xl text-gray-300 mb-4"></i>
+                    <p class="text-gray-500">Cargue su archivo en "Histórico" para ver las estadísticas.</p>
                 </div>
             </div>
 
             <div id="view-historico" class="view">
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100" id="export-historico-area">
-                    <div class="flex justify-between items-center mb-4 no-print flex-wrap gap-4">
-                        <h3 class="text-xl font-bold text-gray-800">Histórico de Movimientos (Julio 2026)</h3>
-                        <div class="flex space-x-2 items-center">
-                            <input type="text" id="search-historico" placeholder="Buscar Apto..." class="border border-gray-300 rounded px-3 py-1.5 text-sm w-48 focus:ring-2 focus:ring-blue-500">
-                            
-                            <!-- Botón y Input oculto para Importar Excel -->
-                            <input type="file" id="input-excel" accept=".xlsx, .xls, .csv" class="hidden" onchange="procesarExcel(event)">
-                            <button onclick="document.getElementById('input-excel').click()" class="bg-green-600 text-white px-4 py-1.5 rounded hover:bg-green-700 text-sm shadow transition font-medium flex items-center">
-                                <i class="fas fa-file-excel mr-2"></i> Importar Excel (Julio)
-                            </button>
-                            
-                            <button onclick="descargarPDF('export-historico-area', 'Historico_Villacoa_Jul26', 'landscape')" class="bg-gray-800 text-white px-3 py-1.5 rounded hover:bg-gray-700 text-sm shadow transition flex items-center">
-                                <i class="fas fa-file-pdf mr-2"></i> PDF
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 flex items-start no-print">
-                        <i class="fas fa-info-circle mt-0.5 mr-2 text-blue-600 text-base"></i>
-                        <div>
-                            <strong>Formato esperado del Excel "ESTADO DE CUENTA AL 12 JULIO 2026 VILLACOA.xlsx":</strong><br>
-                            Columnas: Apto | Propietario | 2022 | 2023 | 2024 | 2025 | Ene-Jun'26 | Jul'26 (Base) | Abonos.
-                        </div>
-                    </div>
-                    
-                    <div class="table-container">
-                        <table class="w-full text-left text-xs" id="tabla-historico">
-                            <thead class="bg-slate-100 text-slate-700">
-                                <tr>
-                                    <th class="p-2 border-b font-semibold">Apto</th>
-                                    <th class="p-2 border-b font-semibold">Propietario</th>
-                                    <th class="p-2 border-b text-right font-semibold">2022</th>
-                                    <th class="p-2 border-b text-right font-semibold">2023</th>
-                                    <th class="p-2 border-b text-right font-semibold">2024</th>
-                                    <th class="p-2 border-b text-right font-semibold">2025</th>
-                                    <th class="p-2 border-b text-right font-semibold">Ene-Jun 26</th>
-                                    <th class="p-2 border-b text-right bg-blue-100 font-bold text-blue-900">Jul-26 (Base)</th>
-                                    <th class="p-2 border-b text-right text-green-700 font-bold bg-green-50">Abonos</th>
-                                    <th class="p-2 border-b text-right font-bold">Deuda Final</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-historico" class="text-gray-700">
-                                <!-- Inyectado por JS -->
-                            </tbody>
-                        </table>
-                    </div>
+                <h2 class="text-2xl font-bold mb-6">Histórico de Movimientos</h2>
+                <div class="bg-white p-6 rounded shadow">
+                    <input type="file" id="excel-input" class="hidden" accept=".xlsx, .xls">
+                    <button onclick="document.getElementById('excel-input').click()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+                        <i class="fas fa-file-excel mr-2"></i> Importar Excel
+                    </button>
+                    <div id="table-historico-wrapper" class="mt-6"></div>
                 </div>
             </div>
 
-            <div id="view-propietarios" class="view">
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2"><i class="fas fa-sliders-h mr-2"></i> Generador de Reportes Especiales</h3>
-                    
-                    <div class="flex flex-col md:flex-row gap-6">
-                        <div class="w-full md:w-1/3 bg-gray-50 p-4 rounded-lg border">
-                            <h4 class="font-bold text-gray-700 mb-3 text-sm">Filtros de Columnas:</h4>
-                            <div class="space-y-2 text-sm text-gray-600 mb-6">
-                                <label class="flex items-center space-x-2"><input type="checkbox" id="col-apto" checked class="form-checkbox text-blue-600 rounded"><span>Apartamento</span></label>
-                                <label class="flex items-center space-x-2"><input type="checkbox" id="col-nombre" checked class="form-checkbox text-blue-600 rounded"><span>Propietario</span></label>
-                                <label class="flex items-center space-x-2"><input type="checkbox" id="col-estado" checked class="form-checkbox text-blue-600 rounded"><span>Estado (Solvente/Moroso)</span></label>
-                                <label class="flex items-center space-x-2"><input type="checkbox" id="col-deuda" checked class="form-checkbox text-blue-600 rounded"><span>Deuda Actual</span></label>
-                            </div>
-                            
-                            <h4 class="font-bold text-gray-700 mb-3 text-sm">Exportar Informe:</h4>
-                            <div class="flex space-x-2">
-                                <button onclick="exportarReporte('pdf')" class="w-1/2 bg-red-600 text-white p-2 rounded shadow hover:bg-red-700 transition font-medium"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
-                                <button onclick="exportarReporte('csv')" class="w-1/2 bg-green-600 text-white p-2 rounded shadow hover:bg-green-700 transition font-medium"><i class="fas fa-file-excel mr-1"></i> Excel</button>
-                            </div>
-                        </div>
-
-                        <div class="w-full md:w-2/3 border rounded-lg overflow-hidden flex flex-col" id="preview-area-container">
-                            <div class="bg-slate-800 text-white p-2 text-center text-xs font-bold uppercase tracking-wider">Vista Previa del Documento</div>
-                            <div class="p-4 flex-1 bg-white" id="preview-content">
-                                <div id="reporte-limpio" class="w-full">
-                                    <div class="text-center mb-4 hidden" id="reporte-header">
-                                        <h2 class="font-bold text-xl">RESIDENCIAS VILLACOA</h2>
-                                        <p class="text-xs">Reporte de Propietarios - Estado de Cuenta Julio 2026</p>
-                                    </div>
-                                    <table class="w-full text-left text-sm border-collapse" id="tabla-preview">
-                                        <thead class="bg-gray-100 border-b-2 border-gray-300">
-                                            <tr>
-                                                <th class="p-2 border col-apto-view font-semibold">Apto</th>
-                                                <th class="p-2 border col-nombre-view font-semibold">Propietario</th>
-                                                <th class="p-2 border col-estado-view text-center font-semibold">Estado</th>
-                                                <th class="p-2 border col-deuda-view text-right font-semibold">Deuda</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="tbody-preview">
-                                            <!-- Se inyecta por JS -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div id="view-reportes" class="view">
+                <h2 class="text-2xl font-bold mb-6">Reportes Especiales</h2>
+                <div id="reporte-content" class="bg-white p-6 rounded shadow"></div>
             </div>
-
-            <div id="view-pagos" class="view">
-                <div class="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow border border-gray-100">
-                    <h3 class="text-xl font-bold text-green-700 mb-6 border-b pb-2"><i class="fas fa-hand-holding-dollar mr-2"></i> Registrar Abono de Propietario</h3>
-                    
-                    <form id="form-pago" onsubmit="procesarPago(event)">
-                        <div class="mb-5">
-                            <label class="block text-sm font-bold text-gray-700 mb-2">Seleccione el Apartamento</label>
-                            <select id="select-apto-pago" onchange="mostrarDeudaApto()" class="w-full border border-gray-300 p-2.5 rounded focus:ring-2 focus:ring-green-500" required>
-                                <option value="">-- Esperando importación de datos... --</option>
-                            </select>
-                        </div>
-
-                        <div id="info-deuda-apto" class="hidden mb-5 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
-                            Deuda pendiente a la fecha: <strong id="monto-deuda-actual" class="text-lg ml-2"></strong>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-5 mb-5">
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">Monto del Abono ($)</label>
-                                <input type="number" step="0.01" id="monto-pago" class="w-full border border-gray-300 p-2.5 rounded focus:ring-2 focus:ring-green-500" placeholder="Ej: 50.00" required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">Fecha del Depósito/Transferencia</label>
-                                <input type="date" id="fecha-pago" class="w-full border border-gray-300 p-2.5 rounded focus:ring-2 focus:ring-green-500" required>
-                            </div>
-                        </div>
-
-                        <div class="mb-8">
-                            <label class="block text-sm font-bold text-gray-700 mb-2">N° Referencia o Banco (Opcional)</label>
-                            <input type="text" id="ref-pago" class="w-full border border-gray-300 p-2.5 rounded focus:ring-2 focus:ring-green-500" placeholder="Ej: Pago Móvil / Zelle - Juan Perez">
-                        </div>
-
-                        <button type="submit" id="btn-guardar-pago" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-green-700 transition">
-                            <i class="fas fa-save mr-2"></i> Procesar Pago
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <div id="view-egresos" class="view">
-                <div class="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow border border-gray-100">
-                    <h3 class="text-xl font-bold text-red-700 mb-6 border-b pb-2"><i class="fas fa-file-invoice-dollar mr-2"></i> Registrar Gasto del Edificio</h3>
-                    <form id="form-egreso" onsubmit="registrarEgreso(event)">
-                        <div class="mb-5">
-                            <label class="block text-sm font-bold text-gray-700 mb-2">Categoría del Gasto</label>
-                            <select id="categoria-egreso" class="w-full border border-gray-300 p-2.5 rounded focus:ring-2 focus:ring-red-500" required>
-                                <option value="Mantenimiento">Mantenimiento y Limpieza</option>
-                                <option value="Servicios">Servicios Básicos (Agua, Luz)</option>
-                                <option value="Otros">Gastos Imprevistos / Otros</option>
-                            </select>
-                        </div>
-                        <div class="grid grid-cols-2 gap-5 mb-8">
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">Monto a debitar ($)</label>
-                                <input type="number" step="0.01" class="w-full border border-gray-300 p-2.5 rounded focus:ring-2 focus:ring-red-500" required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">Fecha del Gasto</label>
-                                <input type="date" id="fecha-egreso" class="w-full border border-gray-300 p-2.5 rounded focus:ring-2 focus:ring-red-500" required>
-                            </div>
-                        </div>
-                        <button type="submit" class="w-full bg-red-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-red-700 transition"><i class="fas fa-save mr-2"></i> Registrar Gasto Interno</button>
-                    </form>
-                </div>
-            </div>
-
-        </div>
-    </main>
-
-    <div id="modal-recibo" class="fixed inset-0 bg-slate-900/60 hidden z-[90] flex items-center justify-center backdrop-blur-sm">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4 flex flex-col relative transform transition-all">
-            <button onclick="cerrarRecibo()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 no-print transition">
-                <i class="fas fa-times text-2xl"></i>
-            </button>
-            
-            <div id="recibo-content" class="p-8 bg-white">
-                <div class="text-center border-b-2 border-gray-800 pb-4 mb-4">
-                    <h2 class="text-2xl font-bold uppercase tracking-widest text-gray-900">Residencias Villacoa</h2>
-                    <p class="text-sm text-gray-600">RIF: J-31455419-0 | residenciasvillacoa@gmail.com</p>
-                    <h3 class="text-xl font-bold mt-4 bg-gray-100 py-2">ESTADO DE CUENTA INDIVIDUAL</h3>
-                </div>
-                <div class="flex justify-between mb-6 text-sm">
-                    <div>
-                        <p><span class="font-bold">Propietario:</span> <span id="r-nombre" class="uppercase"></span></p>
-                        <p><span class="font-bold">Apartamento:</span> <span id="r-apto"></span></p>
-                    </div>
-                    <div class="text-right">
-                        <p><span class="font-bold">Fecha de Emisión:</span> <span id="r-fecha"></span></p>
-                    </div>
-                </div>
-                <table class="w-full text-sm mb-4">
-                    <thead class="bg-gray-100 border-y border-gray-300">
-                        <tr><th class="p-2 text-left">Descripción</th><th class="p-2 text-right">Monto ($)</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td class="p-2 border-b">Cuota Base Condominio (Julio 2026)</td><td class="p-2 border-b text-right">$22.27</td></tr>
-                        <tr><td class="p-2 border-b">Deuda Acumulada (2022 a Jun 2026)</td><td class="p-2 border-b text-right text-red-600" id="r-deuda-ant">$0.00</td></tr>
-                        <tr><td class="p-2 border-b">Abonos Realizados</td><td class="p-2 border-b text-right text-green-600" id="r-abono">-$0.00</td></tr>
-                    </tbody>
-                    <tfoot>
-                        <tr class="bg-gray-50 font-bold text-lg">
-                            <td class="p-3 text-right">TOTAL A PAGAR:</td><td class="p-3 text-right text-red-700" id="r-total">$0.00</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-            <div class="p-4 bg-gray-50 border-t flex justify-end space-x-3 no-print rounded-b-xl">
-                <button onclick="descargarPDF('recibo-content', 'Recibo_Villacoa_Jul26')" class="px-4 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 transition"><i class="fas fa-file-pdf mr-2"></i> Exportar PDF</button>
-                <button onclick="window.print()" class="px-4 py-2 bg-gray-800 text-white font-medium rounded hover:bg-gray-900 transition"><i class="fas fa-print mr-2"></i> Imprimir</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="custom-modal" class="fixed inset-0 bg-slate-900/60 hidden z-[100] flex items-center justify-center backdrop-blur-sm transition-opacity">
-        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 transform transition-all">
-            <h3 id="modal-title" class="text-xl font-bold text-slate-800 mb-2"></h3>
-            <p id="modal-message" class="text-slate-600 mb-6 whitespace-pre-line"></p>
-            <div class="flex justify-end space-x-3">
-                <button id="modal-btn-cancel" class="hidden px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors font-medium">Cancelar</button>
-                <button id="modal-btn-confirm" class="px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors font-medium">Aceptar</button>
-            </div>
-        </div>
+        </main>
     </div>
 
     <script>
-        // --- SISTEMA DE DIÁLOGOS PERSONALIZADOS (Reemplazo estricto de alert y confirm) ---
-        function showDialog(title, message, isConfirm = false, onConfirm = null, onCancel = null) {
-            const modal = document.getElementById('custom-modal');
-            document.getElementById('modal-title').innerText = title;
-            document.getElementById('modal-message').innerText = message;
-            
-            const btnConfirm = document.getElementById('modal-btn-confirm');
-            const btnCancel = document.getElementById('modal-btn-cancel');
-            
-            btnCancel.style.display = isConfirm ? 'block' : 'none';
-            
-            // Limpiar eventos previos clonando botones
-            const newConfirm = btnConfirm.cloneNode(true);
-            btnConfirm.parentNode.replaceChild(newConfirm, btnConfirm);
-            const newCancel = btnCancel.cloneNode(true);
-            btnCancel.parentNode.replaceChild(newCancel, btnCancel);
-            
-            newConfirm.addEventListener('click', () => {
-                modal.classList.add('hidden');
-                if(onConfirm) onConfirm();
-            });
-            
-            newCancel.addEventListener('click', () => {
-                modal.classList.add('hidden');
-                if(onCancel) onCancel();
-            });
-            
-            modal.classList.remove('hidden');
-        }
+        // Lógica Global del sistema sin dependencias externas riesgosas
+        let baseDatos = [];
 
-        // --- MANEJO DE INTERFAZ Y VISTAS ---
-        function changeView(viewId) {
+        function changeView(id) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.getElementById('view-' + viewId).classList.add('active');
+            document.getElementById('view-' + id).classList.add('active');
+        }
+
+        document.getElementById('excel-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
             
-            document.querySelectorAll('aside nav button').forEach(b => {
-                b.classList.remove('bg-slate-800', 'border-l-4', 'border-blue-500');
-            });
-            event.currentTarget.classList.add('bg-slate-800', 'border-l-4', 'border-blue-500');
-
-            const titles = {
-                'dashboard': 'Dashboard General',
-                'historico': 'Histórico de Movimientos',
-                'propietarios': 'Generador de Reportes',
-                'pagos': 'Registrar Ingresos',
-                'egresos': 'Gestión de Gastos'
-            };
-            document.getElementById('header-title').innerText = titles[viewId];
-        }
-
-        function descargarPDF(elementId, filename, format = 'portrait') {
-            const element = document.getElementById(elementId);
-            const opt = {
-                margin: 0.5, 
-                filename: filename + '.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'letter', orientation: format }
-            };
-            html2pdf().set(opt).from(element).save();
-        }
-
-        // La memoria arranca vacía para forzar la carga del Excel ESTADO DE CUENTA AL 12 JULIO 2026 VILLACOA
-        let baseDatosVecinos = [];
-
-        function inicializarSistema() {
-            // Evaluamos si hay datos; como iniciamos en 0, renderizará el estado vacío pidiendo el Excel.
-            procesarTablasUI();
-        }
-
-        function procesarTablasUI() {
-            const tbodyDashboard = document.getElementById('tbody-dashboard');
-            const tbodyHistorico = document.getElementById('tbody-historico');
-            const tbodyPreview = document.getElementById('tbody-preview');
-            const selectApto = document.getElementById('select-apto-pago');
-            
-            tbodyDashboard.innerHTML = ''; 
-            tbodyHistorico.innerHTML = ''; 
-            tbodyPreview.innerHTML = ''; 
-            selectApto.innerHTML = '<option value="">-- Seleccione un propietario --</option>';
-
-            // INTERFAZ DE ESTADO VACÍO (Requisito estricto: Todo limpio hasta cargar Excel)
-            if (baseDatosVecinos.length === 0) {
-                const mensajeDashboard = `<tr><td colspan="5" class="text-center py-12 text-gray-500 bg-gray-50">
-                    <i class="fas fa-file-excel text-5xl mb-4 text-green-600 opacity-50"></i><br>
-                    <span class="text-lg font-bold">El sistema está en blanco.</span><br>Vaya a <b>"Histórico de Deudas"</b> e importe el archivo de Julio 2026.
-                </td></tr>`;
-                
-                const mensajeHistorico = `<tr><td colspan="10" class="text-center py-16 text-gray-500 bg-white border-2 border-dashed border-gray-300 rounded-lg m-4">
-                    <i class="fas fa-cloud-upload-alt text-5xl mb-4 text-blue-500 opacity-70"></i><br>
-                    <span class="text-xl font-bold text-gray-700">Histórico Vacío</span><br>
-                    Haga clic en el botón verde "Importar Excel (Julio)" para cargar la matriz de datos.
-                </td></tr>`;
-                
-                tbodyDashboard.innerHTML = mensajeDashboard;
-                tbodyHistorico.innerHTML = mensajeHistorico;
-                tbodyPreview.innerHTML = mensajeDashboard.replace('colspan="5"', 'colspan="4"');
-                
-                document.getElementById('kpi-deuda').innerText = '$0.00';
-                document.getElementById('kpi-recaudado').innerText = '$0.00';
-                document.getElementById('kpi-morosos').innerText = '0';
-                return;
-            }
-
-            let deudaGlobal = 0, recaudoGlobal = 0, morosos = 0;
-            let sum22 = 0, sum23 = 0, sum24 = 0, sum25 = 0, sum26 = 0, sumJul = 0; // Contadores para el total final
-            const CUOTA_BASE = 22.27; // Base de Julio 2026
-
-            baseDatosVecinos.forEach(v => {
-                // Cálculo adaptado a las columnas del archivo al 12 de Julio 2026
-                const arrastreAntiguo = (v.y22||0) + (v.y23||0) + (v.y24||0) + (v.y25||0) + (v.y26_ej||0);
-                const abono = (v.abono||0);
-                
-                // Aplicar cuota de Julio si tiene arrastre (lógica original) o tomar de la base
-                const cuotaJulio = (arrastreAntiguo > 0 || (v.jul26||0) > 0) ? CUOTA_BASE : 0; 
-                
-                let deudaFinal = arrastreAntiguo + cuotaJulio - abono;
-                if (deudaFinal < 0) deudaFinal = 0;
-
-                deudaGlobal += deudaFinal;
-                recaudoGlobal += abono;
-                
-                sum22 += (v.y22||0); sum23 += (v.y23||0); sum24 += (v.y24||0); sum25 += (v.y25||0); sum26 += (v.y26_ej||0); sumJul += cuotaJulio;
-
-                if(deudaFinal > 0) morosos++;
-
-                const estado = deudaFinal > 0 ? '<span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold border border-red-200">Moroso</span>' : '<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold border border-green-200">Solvente</span>';
-
-                // Inyección Dashboard
-                tbodyDashboard.innerHTML += `
-                    <tr class="border-b hover:bg-blue-50/50 transition">
-                        <td class="p-3 font-bold text-gray-800">${v.apto}</td>
-                        <td class="p-3 text-slate-600">${v.nombre}</td>
-                        <td class="p-3 text-center">${estado}</td>
-                        <td class="p-3 text-right font-bold ${deudaFinal > 0 ? 'text-red-600' : 'text-emerald-600'}">$${deudaFinal.toFixed(2)}</td>
-                        <td class="p-3 text-center no-print">
-                            <button onclick="verRecibo('${v.apto}', '${v.nombre}', ${arrastreAntiguo}, ${abono}, ${deudaFinal})" class="bg-white border border-slate-300 text-slate-700 px-3 py-1 rounded hover:bg-slate-100 text-xs shadow-sm transition-colors"><i class="fas fa-print mr-1"></i> Recibo</button>
-                        </td>
-                    </tr>`;
-
-                // Inyección Histórico
-                tbodyHistorico.innerHTML += `
-                    <tr class="border-b hover:bg-slate-50 transition">
-                        <td class="p-2 font-bold text-slate-800">${v.apto}</td>
-                        <td class="p-2 text-xs truncate max-w-[120px] text-slate-600">${v.nombre}</td>
-                        <td class="p-2 text-right">${(v.y22||0).toFixed(2)}</td>
-                        <td class="p-2 text-right">${(v.y23||0).toFixed(2)}</td>
-                        <td class="p-2 text-right">${(v.y24||0).toFixed(2)}</td>
-                        <td class="p-2 text-right">${(v.y25||0).toFixed(2)}</td>
-                        <td class="p-2 text-right">${(v.y26_ej||0).toFixed(2)}</td>
-                        <td class="p-2 text-right bg-blue-50 font-semibold text-blue-800">${cuotaJulio.toFixed(2)}</td>
-                        <td class="p-2 text-right text-emerald-600 bg-emerald-50/50 font-semibold">${abono.toFixed(2)}</td>
-                        <td class="p-2 text-right font-bold ${deudaFinal > 0 ? 'text-red-600' : 'text-slate-700'} bg-slate-100/50">$${deudaFinal.toFixed(2)}</td>
-                    </tr>`;
-
-                // Inyección Reportes (Vista Previa)
-                tbodyPreview.innerHTML += `
-                    <tr class="border-b hover:bg-gray-50 transition">
-                        <td class="p-2 border-b col-apto-view font-medium">${v.apto}</td>
-                        <td class="p-2 border-b col-nombre-view text-xs">${v.nombre}</td>
-                        <td class="p-2 border-b col-estado-view text-center">${estado}</td>
-                        <td class="p-2 border-b col-deuda-view text-right font-bold ${deudaFinal > 0 ? 'text-red-600' : 'text-emerald-600'}">$${deudaFinal.toFixed(2)}</td>
-                    </tr>`;
-
-                // Opciones para Pagos
-                selectApto.innerHTML += `<option value="${v.apto}" data-deuda="${deudaFinal}">Apto ${v.apto} - ${v.nombre}</option>`;
-            });
-
-            // Fila de TOTALES al final del Histórico
-            tbodyHistorico.innerHTML += `
-                <tr class="bg-slate-800 text-white font-bold border-t-4 border-slate-900">
-                    <td class="p-3" colspan="2">TOTAL DEUDA GENERAL (MOROSIDAD)</td>
-                    <td class="p-3 text-right text-slate-300">${sum22.toFixed(2)}</td>
-                    <td class="p-3 text-right text-slate-300">${sum23.toFixed(2)}</td>
-                    <td class="p-3 text-right text-slate-300">${sum24.toFixed(2)}</td>
-                    <td class="p-3 text-right text-slate-300">${sum25.toFixed(2)}</td>
-                    <td class="p-3 text-right text-slate-300">${sum26.toFixed(2)}</td>
-                    <td class="p-3 text-right text-blue-300">${sumJul.toFixed(2)}</td>
-                    <td class="p-3 text-right text-emerald-400">-${recaudoGlobal.toFixed(2)}</td>
-                    <td class="p-3 text-right text-red-400 text-lg">$${deudaGlobal.toFixed(2)}</td>
-                </tr>`;
-
-            document.getElementById('kpi-deuda').innerText = '$' + deudaGlobal.toLocaleString('en-US', {minimumFractionDigits: 2});
-            document.getElementById('kpi-recaudado').innerText = '$' + recaudoGlobal.toLocaleString('en-US', {minimumFractionDigits: 2});
-            document.getElementById('kpi-morosos').innerText = morosos;
-        }
-
-        function procesarExcel(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            showDialog('Confirmar Importación', `¿Deseas procesar el archivo "${file.name}"?\nEsta acción calculará todas las deudas del mes.`, true, () => {
-                const btnImportar = event.target.nextElementSibling;
-                const originalBtnHtml = btnImportar.innerHTML;
-                btnImportar.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Procesando Archivo...';
-                btnImportar.disabled = true;
-
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, {type: 'array'});
-                        const firstSheet = workbook.SheetNames[0];
-                        const jsonMatriz = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], {header: 1, defval: ''});
-                        
-                        let propietariosAImportar = [];
-                        let hIdx = -1;
-                        let offset = 0;
-
-                        // 1. Buscar la fila de encabezados en las primeras 20 líneas
-                        for (let i = 0; i < Math.min(20, jsonMatriz.length); i++) {
-                            const filaStr = jsonMatriz[i].join('').toLowerCase();
-                            if (filaStr.includes('apto') || filaStr.includes('apartamento') || filaStr.includes('propietario') || filaStr.includes('nombre')) {
-                                hIdx = i;
-                                break;
-                            }
-                        }
-
-                        // Calcular cuántas columnas vacías hay a la izquierda (desalineación)
-                        const filaMuestra = jsonMatriz[hIdx !== -1 ? hIdx : 1] || [];
-                        for(let j = 0; j < filaMuestra.length; j++) {
-                            if(filaMuestra[j] !== '' && filaMuestra[j] !== ',') { offset = j; break; }
-                        }
-
-                        let cApto = offset, cNombre = offset + 1, c22 = offset + 2, c23 = offset + 3, 
-                            c24 = offset + 4, c25 = offset + 5, c26 = offset + 6, cJul = offset + 7, cAbono = offset + 8;
-
-                        // Mapeo preciso si encontró títulos
-                        if(hIdx !== -1) {
-                            const headers = jsonMatriz[hIdx];
-                            for (let j = 0; j < headers.length; j++) {
-                                let val = headers[j].toString().toLowerCase().trim();
-                                if (val.includes('apto') || val.includes('apartamento')) cApto = j;
-                                else if (val.includes('propietario') || val.includes('nombre')) cNombre = j;
-                                else if (val.includes('2022')) c22 = j;
-                                else if (val.includes('2023')) c23 = j;
-                                else if (val.includes('2024')) c24 = j;
-                                else if (val.includes('2025')) c25 = j;
-                                else if (val.includes('ene') || val.includes('jun')) c26 = j; 
-                                else if (val.includes('jul')) cJul = j;
-                                else if (val.includes('abono') || val.includes('pago')) cAbono = j;
-                            }
-                        }
-
-                        const parseNum = (val) => {
-                            if (!val) return 0;
-                            if (typeof val === 'number') return val;
-                            let str = val.toString().replace(/\$/g, '').trim();
-                            if (str.includes(',') && str.includes('.')) {
-                                str = str.indexOf(',') > str.indexOf('.') ? str.replace(/\./g, '').replace(',', '.') : str.replace(/,/g, '');
-                            } else if (str.includes(',')) str = str.replace(',', '.');
-                            return parseFloat(str) || 0;
-                        };
-
-                        const startRow = hIdx !== -1 ? hIdx + 1 : 1;
-
-                        // 2. Extraer datos con tolerancia a errores de columna
-                        for (let i = startRow; i < jsonMatriz.length; i++) {
-                            const fila = jsonMatriz[i];
-                            if (!fila || fila.length === 0) continue;
-                            
-                            let aptoVal = fila[cApto] ? fila[cApto].toString().trim() : '';
-                            let nombreVal = fila[cNombre] ? fila[cNombre].toString().trim() : '';
-
-                            // Si el Apto está vacío por alguna coma atravesada, intentamos rodar la lectura un espacio a la derecha
-                            if(aptoVal === '' || aptoVal === ',') {
-                                aptoVal = fila[cApto+1] ? fila[cApto+1].toString().trim() : '';
-                                nombreVal = fila[cNombre+1] ? fila[cNombre+1].toString().trim() : '';
-                            }
-
-                            if (!aptoVal || aptoVal === ',' || aptoVal.toLowerCase().includes('total') || aptoVal.length > 15) continue;
-
-                            propietariosAImportar.push({
-                                apto: aptoVal,
-                                nombre: nombreVal || 'Sin Nombre',
-                                y22: c22 !== -1 ? parseNum(fila[c22]) : 0, 
-                                y23: c23 !== -1 ? parseNum(fila[c23]) : 0,
-                                y24: c24 !== -1 ? parseNum(fila[c24]) : 0, 
-                                y25: c25 !== -1 ? parseNum(fila[c25]) : 0,
-                                y26_ej: c26 !== -1 ? parseNum(fila[c26]) : 0, 
-                                jul26: cJul !== -1 ? parseNum(fila[cJul]) : 0,  
-                                abono: cAbono !== -1 ? parseNum(fila[cAbono]) : 0
-                            });
-                        }
-
-                        // 3. ULTIMATE FALLBACK: Si no detectó nada (ej. un Excel sin títulos o malformado), lee la matriz a la fuerza bruta saltando celdas vacías
-                        if (propietariosAImportar.length === 0) {
-                            for (let i = 0; i < jsonMatriz.length; i++) {
-                                // Filtramos cualquier celda que esté completamente vacía o sea solo una coma
-                                const filaLimpia = jsonMatriz[i].filter(val => val !== '' && val !== null && val.toString().trim() !== ',');
-                                if(filaLimpia.length < 2) continue; // Si la fila no tiene al menos Apto y Nombre, la ignoramos
-                                
-                                let aptoVal = filaLimpia[0].toString().trim();
-                                if (aptoVal.toLowerCase().includes('total') || aptoVal.toLowerCase().includes('apto') || aptoVal.length > 15) continue;
-
-                                propietariosAImportar.push({
-                                    apto: aptoVal,
-                                    nombre: filaLimpia[1] ? filaLimpia[1].toString().trim() : 'Sin Nombre',
-                                    y22: parseNum(filaLimpia[2]), 
-                                    y23: parseNum(filaLimpia[3]),
-                                    y24: parseNum(filaLimpia[4]), 
-                                    y25: parseNum(filaLimpia[5]),
-                                    y26_ej: parseNum(filaLimpia[6]), 
-                                    jul26: parseNum(filaLimpia[7]),  
-                                    abono: parseNum(filaLimpia[8])
-                                });
-                            }
-                        }
-
-                        if (propietariosAImportar.length === 0) {
-                            showDialog('Error', 'No se pudieron extraer los datos.\nPor favor, verifica que el archivo no esté vacío y contenga filas con el número de Apartamento y Propietario.');
-                            return;
-                        }
-
-                        baseDatosVecinos = propietariosAImportar;
-                        procesarTablasUI();
-                        showDialog('¡Importación Exitosa!', `Se procesaron y calcularon las deudas de ${propietariosAImportar.length} apartamentos automáticamente.`);
-
-                    } catch (error) {
-                        console.error(error);
-                        showDialog('Error de Lectura', 'No se pudo leer el archivo. Verifique que sea un Excel válido (.xlsx o .csv).');
-                    } finally {
-                        btnImportar.innerHTML = originalBtnHtml;
-                        btnImportar.disabled = false;
-                        event.target.value = ''; 
-                    }
-                };
-                reader.readAsArrayBuffer(file);
-            }, () => {
-                event.target.value = '';
-            });
-        }
-
-        function mostrarDeudaApto() {
-            const select = document.getElementById('select-apto-pago');
-            const deudaBox = document.getElementById('info-deuda-apto');
-            if(select.selectedIndex > 0) {
-                const deuda = parseFloat(select.options[select.selectedIndex].getAttribute('data-deuda'));
-                document.getElementById('monto-deuda-actual').innerText = '$' + deuda.toFixed(2);
-                document.getElementById('monto-pago').value = deuda.toFixed(2);
-                deudaBox.classList.remove('hidden');
-            } else {
-                deudaBox.classList.add('hidden');
-            }
-        }
-
-        function procesarPago(e) {
-            e.preventDefault();
-            const apto = document.getElementById('select-apto-pago').value;
-            const monto = document.getElementById('monto-pago').value;
-            
-            // Simular guardado interno en el Array alimentado por Excel
-            let vecino = baseDatosVecinos.find(v => v.apto === apto);
-            if(vecino) {
-                vecino.abono = (vecino.abono || 0) + parseFloat(monto);
-                procesarTablasUI();
-                document.getElementById('form-pago').reset();
-                document.getElementById('info-deuda-apto').classList.add('hidden');
-                
-                showDialog('Pago Procesado', `Se abonaron $${monto} al apartamento ${apto} exitosamente.`);
-            }
-        }
-
-        function registrarEgreso(e) {
-            e.preventDefault();
-            document.getElementById('form-egreso').reset();
-            showDialog('Egreso Guardado', 'El gasto del edificio ha sido registrado en el sistema correctamente.');
-        }
-
-        function verRecibo(apto, nombre, deuda_ant, abono, total) {
-            document.getElementById('r-apto').innerText = apto;
-            document.getElementById('r-nombre').innerText = nombre;
-            document.getElementById('r-fecha').innerText = '12/07/2026';
-            document.getElementById('r-deuda-ant').innerText = '$' + deuda_ant.toFixed(2);
-            document.getElementById('r-abono').innerText = '-$' + abono.toFixed(2);
-            document.getElementById('r-total').innerText = '$' + total.toFixed(2);
-            document.getElementById('modal-recibo').classList.remove('hidden');
-        }
-        
-        function cerrarRecibo() { 
-            document.getElementById('modal-recibo').classList.add('hidden'); 
-        }
-
-        // Lógica para exportar reportes especiales
-        function exportarReporte(tipo) {
-            if(baseDatosVecinos.length === 0) {
-                showDialog('Aviso', 'No hay datos cargados para generar el reporte. Importe un Excel primero.');
-                return;
-            }
-            
-            if (tipo === 'pdf') {
-                document.getElementById('reporte-header').classList.remove('hidden');
-                descargarPDF('reporte-limpio', 'Reporte_Propietarios_Jul26');
-                // Ocultar header de nuevo tras un segundo para no afectar la vista previa web
-                setTimeout(() => document.getElementById('reporte-header').classList.add('hidden'), 1000);
-            } else if (tipo === 'csv') {
-                let csvContent = "data:text/csv;charset=utf-8,";
-                let headers = [];
-                // Validar qué columnas quiere ver el usuario
-                if(document.getElementById('col-apto').checked) headers.push("Apartamento");
-                if(document.getElementById('col-nombre').checked) headers.push("Propietario");
-                if(document.getElementById('col-estado').checked) headers.push("Estado");
-                if(document.getElementById('col-deuda').checked) headers.push("Deuda Total");
-                csvContent += headers.join(",") + "\n";
-                
-                const rows = document.getElementById('tbody-preview').getElementsByTagName('tr');
-                for(let row of rows) {
-                    let rowData = [];
-                    if(document.getElementById('col-apto').checked) rowData.push(row.cells[0].innerText.replace(/,/g, ''));
-                    if(document.getElementById('col-nombre').checked) rowData.push('"' + row.cells[1].innerText.replace(/"/g, '""') + '"'); // Comillas por si el nombre trae comas
-                    if(document.getElementById('col-estado').checked) rowData.push(row.cells[2].innerText.replace(/,/g, ''));
-                    if(document.getElementById('col-deuda').checked) rowData.push(row.cells[3].innerText.replace(/\$/g, '').replace(/,/g, ''));
-                    csvContent += rowData.join(",") + "\n";
+            reader.onload = function(evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const sheetName = workbook.SheetNames[0];
+                    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                    
+                    // Procesamiento inteligente
+                    procesarDatos(jsonData);
+                } catch (err) {
+                    console.error("Error al leer:", err);
+                    alert("No se pudo leer el archivo. Asegúrese de que sea un Excel válido.");
                 }
-                
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement("a");
-                link.setAttribute("href", encodedUri);
-                link.setAttribute("download", "Reporte_Propietarios_Jul26.csv");
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function procesarDatos(data) {
+            baseDatos = data;
+            renderHistorico();
+            alert("Datos importados correctamente. Total de registros: " + data.length);
         }
 
-        // Filtros dinámicos de columnas para la vista de reportes
-        ['apto', 'nombre', 'estado', 'deuda'].forEach(col => {
-            const checkbox = document.getElementById(`col-${col}`);
-            if(checkbox) {
-                checkbox.addEventListener('change', (e) => {
-                    const elements = document.querySelectorAll(`.col-${col}-view`);
-                    // Mostrar u ocultar celdas basándose en el estado del checkbox
-                    elements.forEach(el => el.style.display = e.target.checked ? '' : 'none');
-                });
-            }
-        });
+        function renderHistorico() {
+            const container = document.getElementById('table-historico-wrapper');
+            if(baseDatos.length === 0) return;
 
-        // Buscadores reactivos
-        document.getElementById('search-dashboard').addEventListener('keyup', function() {
-            let filter = this.value.toUpperCase();
-            let rows = document.getElementById('tbody-dashboard').getElementsByTagName('tr');
-            for (let row of rows) row.style.display = row.innerText.toUpperCase().includes(filter) ? '' : 'none';
-        });
-        
-        document.getElementById('search-historico').addEventListener('keyup', function() {
-            let filter = this.value.toUpperCase();
-            let rows = document.getElementById('tbody-historico').getElementsByTagName('tr');
-            for (let row of rows) row.style.display = row.innerText.toUpperCase().includes(filter) ? '' : 'none';
-        });
-        
-        // Fechas por defecto a Julio 2026 para lógica
-        const fechaJulio = new Date('2026-07-12');
-        document.getElementById('fecha-pago').valueAsDate = fechaJulio;
-        document.getElementById('fecha-egreso').valueAsDate = fechaJulio;
-        
-        // Arranque del sistema vacío
-        window.onload = inicializarSistema;
+            let html = `<table class="w-full text-sm border-collapse">
+                <thead><tr class="bg-gray-100 border-b">
+                    <th class="p-2">Apto</th><th class="p-2">Propietario</th><th class="p-2">Deuda Total</th>
+                </tr></thead><tbody>`;
+
+            baseDatos.forEach(row => {
+                // Ajustar claves según los nombres reales del Excel
+                const apto = row['Apto'] || row['apto'] || "N/A";
+                const nombre = row['Propietario'] || row['nombre'] || "Sin nombre";
+                html += `<tr><td class="p-2 border">${apto}</td><td class="p-2 border">${nombre}</td></tr>`;
+            });
+
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
     </script>
 </body>
 </html>
