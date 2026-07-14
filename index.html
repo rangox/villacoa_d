@@ -474,6 +474,7 @@
             }
 
             let deudaGlobal = 0, recaudoGlobal = 0, morosos = 0;
+            let sum22 = 0, sum23 = 0, sum24 = 0, sum25 = 0, sum26 = 0, sumJul = 0; // Contadores para el total final
             const CUOTA_BASE = 22.27; // Base de Julio 2026
 
             baseDatosVecinos.forEach(v => {
@@ -489,6 +490,9 @@
 
                 deudaGlobal += deudaFinal;
                 recaudoGlobal += abono;
+                
+                sum22 += (v.y22||0); sum23 += (v.y23||0); sum24 += (v.y24||0); sum25 += (v.y25||0); sum26 += (v.y26_ej||0); sumJul += cuotaJulio;
+
                 if(deudaFinal > 0) morosos++;
 
                 const estado = deudaFinal > 0 ? '<span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold border border-red-200">Moroso</span>' : '<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold border border-green-200">Solvente</span>';
@@ -524,6 +528,20 @@
                 selectApto.innerHTML += `<option value="${v.apto}" data-deuda="${deudaFinal}">Apto ${v.apto} - ${v.nombre}</option>`;
             });
 
+            // Fila de TOTALES al final del Histórico
+            tbodyHistorico.innerHTML += `
+                <tr class="bg-slate-800 text-white font-bold border-t-4 border-slate-900">
+                    <td class="p-3" colspan="2">TOTAL DEUDA GENERAL (MOROSIDAD)</td>
+                    <td class="p-3 text-right text-slate-300">${sum22.toFixed(2)}</td>
+                    <td class="p-3 text-right text-slate-300">${sum23.toFixed(2)}</td>
+                    <td class="p-3 text-right text-slate-300">${sum24.toFixed(2)}</td>
+                    <td class="p-3 text-right text-slate-300">${sum25.toFixed(2)}</td>
+                    <td class="p-3 text-right text-slate-300">${sum26.toFixed(2)}</td>
+                    <td class="p-3 text-right text-blue-300">${sumJul.toFixed(2)}</td>
+                    <td class="p-3 text-right text-emerald-400">-${recaudoGlobal.toFixed(2)}</td>
+                    <td class="p-3 text-right text-red-400 text-lg">$${deudaGlobal.toFixed(2)}</td>
+                </tr>`;
+
             document.getElementById('kpi-deuda').innerText = '$' + deudaGlobal.toLocaleString('en-US', {minimumFractionDigits: 2});
             document.getElementById('kpi-recaudado').innerText = '$' + recaudoGlobal.toLocaleString('en-US', {minimumFractionDigits: 2});
             document.getElementById('kpi-morosos').innerText = morosos;
@@ -546,44 +564,95 @@
                         const data = new Uint8Array(e.target.result);
                         const workbook = XLSX.read(data, {type: 'array'});
                         const firstSheet = workbook.SheetNames[0];
-                        const jsonMatriz = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], {header: 1});
+                        // defval '' asegura que las columnas vacías no se salten, manteniendo la cuadrícula perfecta
+                        const jsonMatriz = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], {header: 1, defval: ''});
                         
                         let propietariosAImportar = [];
+                        
+                        // --- MAPEO DINÁMICO DE COLUMNAS (Solución a la desalineación) ---
+                        let hIdx = -1; // Fila donde están los encabezados
+                        let cApto = -1, cNombre = -1, c22 = -1, c23 = -1, c24 = -1, c25 = -1, c26 = -1, cJul = -1, cAbono = -1;
+
+                        // 1. Buscar la fila real de títulos (Ignora basura arriba)
+                        for (let i = 0; i < Math.min(30, jsonMatriz.length); i++) {
+                            const fila = jsonMatriz[i];
+                            if (!fila) continue;
+                            const filaStr = fila.join('').toLowerCase();
+                            
+                            if (filaStr.includes('apto') || filaStr.includes('apartamento') || filaStr.includes('propietario')) {
+                                hIdx = i;
+                                // Identificar en qué posición exacta está cada columna
+                                for (let j = 0; j < fila.length; j++) {
+                                    let cell = (fila[j] || '').toString().toLowerCase().trim();
+                                    if (cell === 'apto' || cell === 'apartamento') cApto = j;
+                                    else if (cell === 'propietario' || cell === 'nombre') cNombre = j;
+                                    else if (cell === '2022') c22 = j;
+                                    else if (cell === '2023') c23 = j;
+                                    else if (cell === '2024') c24 = j;
+                                    else if (cell === '2025') c25 = j;
+                                    else if (cell.includes('ene') || cell.includes('jun')) c26 = j; 
+                                    else if (cell.includes('jul')) cJul = j;
+                                    else if (cell.includes('abono') || cell.includes('pago')) cAbono = j;
+                                }
+                                break;
+                            }
+                        }
+
+                        // Si por algún motivo no encuentra los títulos, asume orden estricto saltando la columna A si está vacía
+                        if (hIdx === -1) {
+                            hIdx = 0; 
+                            let offset = (!jsonMatriz[1][0] || jsonMatriz[1][0] === ',') ? 1 : 0;
+                            cApto = offset; cNombre = offset + 1; c22 = offset + 2; c23 = offset + 3; 
+                            c24 = offset + 4; c25 = offset + 5; c26 = offset + 6; cJul = offset + 7; cAbono = offset + 8;
+                        }
+
+                        // Parseo de números seguro (maneja formato $ y comas)
                         const parseNum = (val) => {
                             if (!val) return 0;
                             if (typeof val === 'number') return val;
-                            return parseFloat(val.toString().replace(/\./g, '').replace(',', '.')) || 0;
+                            let str = val.toString().replace(/\$/g, '').trim();
+                            if (str.includes(',') && str.includes('.')) {
+                                str = str.indexOf(',') > str.indexOf('.') ? str.replace(/\./g, '').replace(',', '.') : str.replace(/,/g, '');
+                            } else if (str.includes(',')) {
+                                str = str.replace(',', '.');
+                            }
+                            return parseFloat(str) || 0;
                         };
 
-                        // Mapear columnas según archivo 12 Julio 2026
-                        for (let i = 0; i < jsonMatriz.length; i++) {
+                        // 2. Extraer datos fila por fila
+                        for (let i = hIdx + 1; i < jsonMatriz.length; i++) {
                             const fila = jsonMatriz[i];
-                            if (fila.length === 0 || !fila[0]) continue;
-                            const aptoNombre = fila[0].toString().trim();
-                            if (aptoNombre.toLowerCase() === 'apto' || aptoNombre.toLowerCase() === 'apartamento') continue;
+                            if (!fila || fila.length === 0) continue;
+                            
+                            let aptoVal = cApto !== -1 ? (fila[cApto] || '').toString().trim() : '';
+                            let nombreVal = cNombre !== -1 ? (fila[cNombre] || '').toString().trim() : '';
+
+                            // Filtro de limpieza: Ignorar filas rotas, vacías, basuras como "," o filas de Totales de excel
+                            if (!aptoVal || aptoVal === ',' || aptoVal.toLowerCase().includes('total')) continue;
+                            if (aptoVal.length > 10) continue; // Un número de Apto legítimo (ej PB-A, 12-C) no supera los 10 caracteres
 
                             propietariosAImportar.push({
-                                apto: aptoNombre,
-                                nombre: (fila[1] || 'Sin Nombre').toString().trim(),
-                                y22: parseNum(fila[2]), 
-                                y23: parseNum(fila[3]),
-                                y24: parseNum(fila[4]), 
-                                y25: parseNum(fila[5]),
-                                y26_ej: parseNum(fila[6]), // Ene-Jun 26
-                                jul26: parseNum(fila[7]),  // Cuota Julio 26
-                                abono: parseNum(fila[8])
+                                apto: aptoVal,
+                                nombre: nombreVal || 'Sin Nombre',
+                                y22: c22 !== -1 ? parseNum(fila[c22]) : 0, 
+                                y23: c23 !== -1 ? parseNum(fila[c23]) : 0,
+                                y24: c24 !== -1 ? parseNum(fila[c24]) : 0, 
+                                y25: c25 !== -1 ? parseNum(fila[c25]) : 0,
+                                y26_ej: c26 !== -1 ? parseNum(fila[c26]) : 0, 
+                                jul26: cJul !== -1 ? parseNum(fila[cJul]) : 0,  
+                                abono: cAbono !== -1 ? parseNum(fila[cAbono]) : 0
                             });
                         }
 
                         if (propietariosAImportar.length === 0) {
-                            showDialog('Error', 'No se encontraron datos válidos en el documento.');
+                            showDialog('Error', 'No se detectaron apartamentos válidos.\n\nAsegúrese de subir el archivo "ESTADO DE CUENTA AL 12 JULIO 2026 VILLACOA.xlsx"');
                             return;
                         }
 
                         // Alimentar la memoria local
                         baseDatosVecinos = propietariosAImportar;
                         procesarTablasUI();
-                        showDialog('¡Importación Exitosa!', `Se procesaron correctamente ${propietariosAImportar.length} propietarios al 12 de Julio 2026.`);
+                        showDialog('¡Importación Exitosa!', `Se procesaron correctamente y se calcularon deudas para ${propietariosAImportar.length} apartamentos.`);
 
                     } catch (error) {
                         console.error(error);
