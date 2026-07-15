@@ -242,7 +242,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2">Banco Emisor / Receptor</label>
-                                <input type="text" id="pago-banco" class="w-full border p-2.5 rounded focus:ring-2 focus:ring-green-500 outline-none" placeholder="Ej: Banesco, Mercantil, Zelle" required>
+                                <input type="text" id="pago-banco" class="w-full border p-2.5 rounded focus:ring-2 focus:ring-green-500 outline-none" placeholder="Ej: Banesco, Zelle, Pago Móvil" required>
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2">Referencia Bancaria</label>
@@ -265,7 +265,7 @@
                             </div>
                             <div>
                                 <label class="text-xs font-bold text-gray-500 uppercase">Mes a Facturar:</label>
-                                <input type="text" id="config-mes" value="JUNIO 2026" class="border p-1 w-32 rounded text-sm bg-gray-50 uppercase text-center font-bold">
+                                <input type="text" id="config-mes" value="JULIO 2026" class="border p-1 w-32 rounded text-sm bg-gray-50 uppercase text-center font-bold">
                             </div>
                         </div>
                     </div>
@@ -436,6 +436,7 @@
             document.getElementById('header-tasa').innerText = tasa.toFixed(2);
             document.getElementById('r-tasa').innerText = tasa.toFixed(2);
             document.getElementById('r-mes').innerText = document.getElementById('config-mes').value;
+            document.getElementById('sidebar-mes').innerHTML = `Estado de Cuenta<br>${document.getElementById('config-mes').value}`;
             
             let tbody = document.getElementById('tbody-gastos-config');
             tbody.innerHTML = '';
@@ -506,36 +507,41 @@
                 const workbook = XLSX.read(data, {type: 'array'});
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
                 
-                // CLAVE: defval: '' asegura que las celdas vacías no se borren. 
-                // Esto mantiene la alineación exacta de las columnas idéntica a tu Excel físico.
+                // defval: '' es vital para que respete los espacios en blanco
                 const json = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ''});
                 
                 let nuevosVecinos = [];
 
                 json.forEach(row => {
-                    // Busca la fila donde hay un apartamento (ej: 1-A, 15-C, PH-B)
+                    // Busca el índice de la columna que parece un apartamento
                     let aptoIdx = row.findIndex(c => String(c).trim().match(/^(\d{1,2}|PH|PB)-[A-Z0-9]$/i));
                     
                     if (aptoIdx !== -1) {
                         let apto = String(row[aptoIdx]).trim();
-                        if (apto === ',' || apto.toLowerCase().includes('total')) return;
+                        if (apto === ',' || apto.toLowerCase().includes('total')) return; // ignora totales y basurilla
 
                         let nombre = String(row[aptoIdx + 1] || 'S/N').trim();
                         
-                        // Convertir a número con seguridad (si la celda está vacía en Excel, vale 0)
+                        // PROTECCIÓN VITAL: Mantener "Convenio" si el vecino ya lo tenía en la BD antes de subir el Excel nuevo
+                        let vecinoAntiguo = baseDatosVecinos.find(v => v.apto === apto);
+                        if (vecinoAntiguo && vecinoAntiguo.nombre.includes(" (CONVENIO)")) {
+                            if (!nombre.includes(" (CONVENIO)")) {
+                                nombre += " (CONVENIO)";
+                            }
+                        }
+                        
                         const parseMonto = (val) => {
                             if (val === '' || val === null || val === undefined) return 0;
                             if (typeof val === 'number') return val;
                             return parseFloat(String(val).replace(/[^0-9.-]+/g,"")) || 0;
                         };
 
-                        // Lectura con alineación estricta de columnas según el Excel
+                        // Lectura con alineación estricta de columnas, saltando la columna del Nombre (aptoIdx + 1)
                         let y22 = parseMonto(row[aptoIdx + 2]);
                         let y23 = parseMonto(row[aptoIdx + 3]);
                         let y24 = parseMonto(row[aptoIdx + 4]);
                         let y25 = parseMonto(row[aptoIdx + 5]);
                         let y26_em = parseMonto(row[aptoIdx + 6]);
-                        // Asumimos que los Abonos están en la columna 8 o 7 dependiendo del margen
                         let abono = parseMonto(row[aptoIdx + 8]) || parseMonto(row[aptoIdx + 7]); 
 
                         nuevosVecinos.push({ apto, nombre, y22, y23, y24, y25, y26_em, abono });
@@ -543,11 +549,11 @@
                 });
 
                 if (nuevosVecinos.length === 0) {
-                    alert('No se detectaron apartamentos. Verifica el formato del archivo.');
+                    alert('No se detectaron apartamentos válidos. Verifica el formato del archivo.');
                     return;
                 }
 
-                // Guardar idéntico en la Nube (Supabase) para que sea el histórico oficial
+                // Guardar en la Nube (Supabase)
                 document.getElementById('gran-total-historico').innerText = 'Sincronizando con Base de Datos...';
                 
                 try {
@@ -562,7 +568,7 @@
                     if(result.success) {
                         baseDatosVecinos = nuevosVecinos;
                         actualizarTodasLasVistas();
-                        alert(`¡Éxito! ${baseDatosVecinos.length} registros cargados y guardados idénticos a tu archivo Excel.`);
+                        alert(`¡Éxito! ${baseDatosVecinos.length} registros cargados y sincronizados en la Nube.`);
                     } else {
                         throw new Error(JSON.stringify(result.error));
                     }
@@ -570,7 +576,7 @@
                     console.error("Error BD:", error);
                     baseDatosVecinos = nuevosVecinos;
                     actualizarTodasLasVistas();
-                    alert("Carga local idéntica al Excel completada. (Aviso: No se pudo guardar en la nube en este momento).");
+                    alert("Carga local completada. (Aviso: No se pudo guardar en la nube en este momento. Revisa tus credenciales).");
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -590,18 +596,19 @@
                 let arrastre = v.y22 + v.y23 + v.y24 + v.y25 + v.y26_em;
                 let cuotaAplicada = (arrastre > 0 || CUOTA_BASE > 0) ? CUOTA_BASE : 0; 
                 let deudaFinal = arrastre + cuotaAplicada - (v.abono || 0);
-                if (deudaFinal < 0) deudaFinal = 0;
+                if (deudaFinal < 0) deudaFinal = 0; // Evitar deudas negativas visualmente
                 
                 deudaGlobal += deudaFinal;
                 recaudado += v.abono || 0;
                 
                 let isConvenio = v.nombre.includes(" (CONVENIO)");
-                let nombreDisplay = v.nombre.replace(" (CONVENIO)", ""); // Nombre limpio para PDFs e Interfaz
+                let nombreDisplay = v.nombre.replace(" (CONVENIO)", ""); // Nombre limpio para interfaz
                 
                 let estadoHtml = '';
                 let estadoTexto = '';
                 
-                if (deudaFinal === 0) {
+                // REGLA CRÍTICA: 0 es Solvente. Si debe pero tiene convenio, es Amarillo. Si no, Rojo.
+                if (deudaFinal <= 0) {
                     estadoHtml = '<span class="bg-green-100 text-green-800 px-2 py-1 rounded font-bold border border-green-200 text-[10px] uppercase">Solvente</span>';
                     estadoTexto = 'Solvente';
                 } else if (isConvenio) {
@@ -610,7 +617,7 @@
                 } else {
                     estadoHtml = '<span class="bg-red-100 text-red-800 px-2 py-1 rounded font-bold border border-red-200 text-[10px] uppercase">Moroso</span>';
                     estadoTexto = 'Moroso';
-                    morosos++; // Solo sumamos al KPI los morosos críticos (sin convenio)
+                    morosos++; // El KPI solo cuenta los morosos que no tienen convenio
                 }
 
                 tbDash.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-3 font-bold">${v.apto}</td><td class="p-3 text-sm">${nombreDisplay}</td><td class="p-3 text-center">${estadoHtml}</td><td class="p-3 text-right font-bold text-gray-700">$${deudaFinal.toFixed(2)}</td><td class="p-3 text-center no-print"><div class="flex justify-center space-x-2"><button onclick="armarRecibo('${v.apto}', '${nombreDisplay}', ${v.abono || 0}, ${v.y22}, ${v.y23}, ${v.y24}, ${v.y25}, ${v.y26_em}, ${deudaFinal})" class="bg-gray-100 border px-3 py-1 rounded hover:bg-gray-200 text-gray-700 transition shadow-sm" title="Imprimir Recibo"><i class="fas fa-print"></i></button><button onclick="toggleConvenio('${v.apto}')" class="${isConvenio ? 'bg-yellow-100 border-yellow-300 text-yellow-700 hover:bg-yellow-200' : 'bg-gray-100 border-gray-200 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'} border px-3 py-1 rounded transition shadow-sm" title="Marcar/Desmarcar Convenio de Pago"><i class="fas fa-handshake"></i></button></div></td></tr>`;
@@ -643,7 +650,7 @@
             
             actualizarTodasLasVistas(); // Actualiza la UI al instante (Amarillo)
             
-            // Usamos el mensajero que ya existe para actualizar solo este apartamento en Supabase
+            // Enviamos un micro-update a Supabase solo para este apartamento
             try {
                 await fetch('/api/importarHistorico', {
                     method: 'POST',
@@ -657,10 +664,10 @@
 
         function armarRecibo(apto, nombre, abono, d22, d23, d24, d25, d26, deudaFinal) {
             document.getElementById('r-apto').innerText = apto;
-            document.getElementById('r-nombre').innerText = nombre;
+            document.getElementById('r-nombre').innerText = nombre; // Viene limpio de (CONVENIO)
             const tasa = parseFloat(document.getElementById('config-tasa').value) || 667.05;
 
-            // Llenar tabla interna del recibo con los gastos actuales
+            // Llenar tabla interna del recibo con los gastos actuales configurados
             let tbGastos = document.getElementById('tbody-recibo-gastos');
             let tfGastos = document.getElementById('tfoot-recibo-gastos');
             tbGastos.innerHTML = '';
@@ -686,7 +693,7 @@
                 <tr class="bg-blue-100 text-blue-900 text-[13px]"><td colspan="3" class="p-1 text-right font-black border-r border-blue-300">TOTAL A PAGAR DOLARES (CUOTA BASE)</td><td class="p-1 text-right font-black">$${(totalPagarBs/tasa).toFixed(2)}</td></tr>
             `;
 
-            // Deuda Individual
+            // Deuda Individual del Apartamento seleccionado
             let arrastre = d22 + d23 + d24 + d25 + d26;
             document.getElementById('r-d22').innerText = '$' + d22.toFixed(2);
             document.getElementById('r-d23').innerText = '$' + d23.toFixed(2);
@@ -748,7 +755,6 @@
             }
         }
 
-        // Utilidades Auxiliares
         function filtrarTabla(inputId, tbodyId) {
             let filter = document.getElementById(inputId).value.toLowerCase();
             let tr = document.getElementById(tbodyId).getElementsByTagName('tr');
@@ -800,7 +806,7 @@
             
             const btn = document.getElementById('btn-guardar-pago');
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Procesando y Guardando...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Procesando...';
 
             const apto = document.getElementById('select-apto-pago').value;
             const monto = parseFloat(document.getElementById('pago-monto').value);
@@ -808,7 +814,6 @@
             const banco = document.getElementById('pago-banco').value;
             const ref = document.getElementById('pago-ref').value;
             
-            // Unificamos el banco y la referencia para la base de datos
             const referenciaFinal = `${banco} - Ref: ${ref}`;
 
             if (!apto) {
@@ -838,11 +843,10 @@
                     }
                     
                     actualizarTodasLasVistas();
-                    mostrarDeudaPago(); // Actualiza el radar en vivo
+                    mostrarDeudaPago(); 
                     
-                    alert(`¡PAGO EXITOSO! Se ha abonado $${monto.toFixed(2)} al apartamento ${apto}. Saldo actualizado en la nube.`);
+                    alert(`¡PAGO EXITOSO! Se ha abonado $${monto.toFixed(2)} al apartamento ${apto}. Saldo actualizado.`);
                     
-                    // Limpia campos bancarios pero deja la fecha en hoy
                     document.getElementById('pago-monto').value = '';
                     document.getElementById('pago-banco').value = '';
                     document.getElementById('pago-ref').value = '';
@@ -887,7 +891,7 @@
             actualizarGastosUI(); 
             cargarDesdeNube();
             
-            // Autocompletar la fecha del formulario de pagos al día de hoy
+            // Autocompletar la fecha del formulario de pagos
             const hoy = new Date();
             const tzoffset = (new Date()).getTimezoneOffset() * 60000;
             const fechaLocal = (new Date(hoy - tzoffset)).toISOString().split('T')[0];
