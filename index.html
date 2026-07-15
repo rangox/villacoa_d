@@ -487,42 +487,77 @@
             if (!file) return;
             const reader = new FileReader();
             
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const json = XLSX.utils.sheet_to_json(sheet, {header: 1});
                 
-                baseDatosVecinos = [];
+                // CLAVE: defval: '' asegura que las celdas vacías no se borren. 
+                // Esto mantiene la alineación exacta de las columnas idéntica a tu Excel físico.
+                const json = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ''});
+                
+                let nuevosVecinos = [];
 
                 json.forEach(row => {
-                    const cleanRow = row.filter(cell => cell !== null && cell !== undefined && String(cell).trim() !== '');
-                    if (cleanRow.length < 3) return;
-
-                    let aptoIdx = cleanRow.findIndex(c => String(c).match(/^\d{1,2}-[A-Z]$/i));
+                    // Busca la fila donde hay un apartamento (ej: 1-A, 15-C, PH-B)
+                    let aptoIdx = row.findIndex(c => String(c).trim().match(/^(\d{1,2}|PH|PB)-[A-Z0-9]$/i));
                     
                     if (aptoIdx !== -1) {
-                        let apto = String(cleanRow[aptoIdx]).trim();
+                        let apto = String(row[aptoIdx]).trim();
                         if (apto === ',' || apto.toLowerCase().includes('total')) return;
 
-                        let nombre = String(cleanRow[aptoIdx + 1] || 'S/N').trim();
-                        let y22 = parseFloat(cleanRow[aptoIdx + 2]) || 0;
-                        let y23 = parseFloat(cleanRow[aptoIdx + 3]) || 0;
-                        let y24 = parseFloat(cleanRow[aptoIdx + 4]) || 0;
-                        let y25 = parseFloat(cleanRow[aptoIdx + 5]) || 0;
-                        let y26_ej = parseFloat(cleanRow[aptoIdx + 6]) || 0;
-                        let abono = parseFloat(cleanRow[aptoIdx + 8] || cleanRow[aptoIdx + 7]) || 0; 
+                        let nombre = String(row[aptoIdx + 1] || 'S/N').trim();
+                        
+                        // Convertir a número con seguridad (si la celda está vacía en Excel, vale 0)
+                        const parseMonto = (val) => {
+                            if (val === '' || val === null || val === undefined) return 0;
+                            if (typeof val === 'number') return val;
+                            return parseFloat(String(val).replace(/[^0-9.-]+/g,"")) || 0;
+                        };
 
-                        baseDatosVecinos.push({ apto, nombre, y22, y23, y24, y25, y26_ej, abono });
+                        // Lectura con alineación estricta de columnas según el Excel
+                        let y22 = parseMonto(row[aptoIdx + 2]);
+                        let y23 = parseMonto(row[aptoIdx + 3]);
+                        let y24 = parseMonto(row[aptoIdx + 4]);
+                        let y25 = parseMonto(row[aptoIdx + 5]);
+                        let y26_em = parseMonto(row[aptoIdx + 6]);
+                        // Asumimos que los Abonos están en la columna 8 o 7 dependiendo del margen
+                        let abono = parseMonto(row[aptoIdx + 8]) || parseMonto(row[aptoIdx + 7]); 
+
+                        nuevosVecinos.push({ apto, nombre, y22, y23, y24, y25, y26_em, abono });
                     }
                 });
 
-                if (baseDatosVecinos.length === 0) {
+                if (nuevosVecinos.length === 0) {
                     alert('No se detectaron apartamentos. Verifica el formato del archivo.');
                     return;
                 }
-                actualizarTodasLasVistas();
-                alert(`¡Éxito! ${baseDatosVecinos.length} apartamentos importados.`);
+
+                // Guardar idéntico en la Nube (Supabase) para que sea el histórico oficial
+                document.getElementById('gran-total-historico').innerText = 'Sincronizando con Base de Datos...';
+                
+                try {
+                    const response = await fetch('/api/importarHistorico', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ propietarios: nuevosVecinos })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if(result.success) {
+                        baseDatosVecinos = nuevosVecinos;
+                        actualizarTodasLasVistas();
+                        alert(`¡Éxito! ${baseDatosVecinos.length} registros cargados y guardados idénticos a tu archivo Excel.`);
+                    } else {
+                        throw new Error(JSON.stringify(result.error));
+                    }
+                } catch(error) {
+                    console.error("Error BD:", error);
+                    baseDatosVecinos = nuevosVecinos;
+                    actualizarTodasLasVistas();
+                    alert("Carga local idéntica al Excel completada. (Aviso: No se pudo guardar en la nube en este momento).");
+                }
             };
             reader.readAsArrayBuffer(file);
         }
@@ -538,8 +573,7 @@
             let deudaGlobal = 0, recaudado = 0, morosos = 0;
 
             baseDatosVecinos.forEach(v => {
-                let arrastre = v.y22 + v.y23 + v.y24 + v.y25 + v.y26_ej;
-                // Si tiene arrastre, se le suma la cuota base del mes generada dinámicamente
+                let arrastre = v.y22 + v.y23 + v.y24 + v.y25 + v.y26_em;
                 let cuotaAplicada = (arrastre > 0 || CUOTA_BASE > 0) ? CUOTA_BASE : 0; 
                 let deudaFinal = arrastre + cuotaAplicada - v.abono;
                 if (deudaFinal < 0) deudaFinal = 0;
@@ -550,9 +584,9 @@
 
                 let eHtml = deudaFinal > 0 ? '<span class="bg-red-100 text-red-800 px-2 rounded font-bold border border-red-200 text-[10px]">Moroso</span>' : '<span class="bg-green-100 text-green-800 px-2 rounded font-bold border border-green-200 text-[10px]">Solvente</span>';
                 
-                tbDash.innerHTML += `<tr class="border-b"><td class="p-3 font-bold">${v.apto}</td><td class="p-3">${v.nombre}</td><td class="p-3 text-center">${eHtml}</td><td class="p-3 text-right font-bold">$${deudaFinal.toFixed(2)}</td><td class="p-3 text-center no-print"><button onclick="armarRecibo('${v.apto}', '${v.nombre}', ${v.abono}, ${v.y22}, ${v.y23}, ${v.y24}, ${v.y25}, ${v.y26_ej}, ${deudaFinal})" class="bg-gray-100 border px-3 py-1 rounded hover:bg-gray-200"><i class="fas fa-print"></i></button></td></tr>`;
+                tbDash.innerHTML += `<tr class="border-b"><td class="p-3 font-bold">${v.apto}</td><td class="p-3">${v.nombre}</td><td class="p-3 text-center">${eHtml}</td><td class="p-3 text-right font-bold">$${deudaFinal.toFixed(2)}</td><td class="p-3 text-center no-print"><button onclick="armarRecibo('${v.apto}', '${v.nombre}', ${v.abono}, ${v.y22}, ${v.y23}, ${v.y24}, ${v.y25}, ${v.y26_em}, ${deudaFinal})" class="bg-gray-100 border px-3 py-1 rounded hover:bg-gray-200"><i class="fas fa-print"></i></button></td></tr>`;
                 
-                tbHist.innerHTML += `<tr class="border-b"><td class="p-2 font-bold">${v.apto}</td><td class="p-2">${v.nombre}</td><td class="p-2 text-right">$${v.y22.toFixed(2)}</td><td class="p-2 text-right">$${v.y23.toFixed(2)}</td><td class="p-2 text-right">$${v.y24.toFixed(2)}</td><td class="p-2 text-right">$${v.y25.toFixed(2)}</td><td class="p-2 text-right">$${v.y26_ej.toFixed(2)}</td><td class="p-2 text-right text-blue-900 bg-blue-50 font-bold">$${cuotaAplicada.toFixed(2)}</td><td class="p-2 text-right text-green-700 bg-green-50">$${v.abono.toFixed(2)}</td><td class="p-2 text-right font-bold ${deudaFinal>0?'text-red-600':''}">$${deudaFinal.toFixed(2)}</td></tr>`;
+                tbHist.innerHTML += `<tr class="border-b"><td class="p-2 font-bold">${v.apto}</td><td class="p-2">${v.nombre}</td><td class="p-2 text-right">$${v.y22.toFixed(2)}</td><td class="p-2 text-right">$${v.y23.toFixed(2)}</td><td class="p-2 text-right">$${v.y24.toFixed(2)}</td><td class="p-2 text-right">$${v.y25.toFixed(2)}</td><td class="p-2 text-right">$${v.y26_em.toFixed(2)}</td><td class="p-2 text-right text-blue-900 bg-blue-50 font-bold">$${cuotaAplicada.toFixed(2)}</td><td class="p-2 text-right text-green-700 bg-green-50">$${v.abono.toFixed(2)}</td><td class="p-2 text-right font-bold ${deudaFinal>0?'text-red-600':''}">$${deudaFinal.toFixed(2)}</td></tr>`;
                 
                 tbPrev.innerHTML += `<tr><td class="p-2 border col-apto-view">${v.apto}</td><td class="p-2 border col-nombre-view">${v.nombre}</td><td class="p-2 border text-center col-estado-view">${deudaFinal>0?'Moroso':'Solvente'}</td><td class="p-2 border text-right col-deuda-view">$${deudaFinal.toFixed(2)}</td></tr>`;
                 
@@ -647,8 +681,34 @@
 
         function procesarPago(e) { e.preventDefault(); alert('Pago de prueba registrado en sistema local.'); e.target.reset(); }
 
+        // NUEVO: Función para buscar los datos guardados en la base de datos al abrir la web
+        async function cargarDesdeNube() {
+            try {
+                const response = await fetch('/api/getPropietarios');
+                const result = await response.json();
+                if (result.success && result.data && result.data.length > 0) {
+                    baseDatosVecinos = result.data.map(v => ({
+                        apto: v.apto,
+                        nombre: v.nombre,
+                        y22: parseFloat(v.y22) || 0,
+                        y23: parseFloat(v.y23) || 0,
+                        y24: parseFloat(v.y24) || 0,
+                        y25: parseFloat(v.y25) || 0,
+                        y26_em: parseFloat(v.y26_em) || 0, // Sincronizado con BD
+                        abono: parseFloat(v.abono) || 0
+                    }));
+                    actualizarTodasLasVistas();
+                }
+            } catch (error) {
+                console.log("Iniciando en blanco o en modo local (sin conexión a BD).");
+            }
+        }
+
         // Inicializar UI al cargar
-        window.onload = () => { actualizarGastosUI(); };
+        window.onload = () => { 
+            actualizarGastosUI(); 
+            cargarDesdeNube(); // Al abrir, pregunta a la base de datos si hay datos guardados
+        };
     </script>
 </body>
 </html>
