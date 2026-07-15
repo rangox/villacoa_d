@@ -219,27 +219,37 @@
 
             <div id="view-pagos" class="view">
                 <div class="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow border border-gray-100">
-                    <h3 class="text-xl font-bold text-green-700 mb-6 border-b pb-2"><i class="fas fa-hand-holding-dollar mr-2"></i> Registrar Abono</h3>
+                    <h3 class="text-xl font-bold text-green-700 mb-6 border-b pb-2"><i class="fas fa-hand-holding-dollar mr-2"></i> Registrar Abono o Pago Completo</h3>
                     <form onsubmit="procesarPago(event)">
                         <div class="mb-5">
                             <label class="block text-sm font-bold text-gray-700 mb-2">Seleccione el Apartamento</label>
-                            <select id="select-apto-pago" class="w-full border p-2.5 rounded" required><option value="">-- Importe un Excel primero --</option></select>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">Monto ($)</label>
-                                <input type="number" id="pago-monto" step="0.01" class="w-full border p-2.5 rounded" required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">Fecha</label>
-                                <input type="date" id="pago-fecha" class="w-full border p-2.5 rounded" required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">Referencia</label>
-                                <input type="text" id="pago-ref" class="w-full border p-2.5 rounded" placeholder="Ej: Zelle, Banesco...">
+                            <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 items-start sm:items-center">
+                                <select id="select-apto-pago" class="w-full border p-2.5 rounded focus:ring-2 focus:ring-green-500 outline-none" required onchange="mostrarDeudaPago()"><option value="">-- Importe un Excel primero --</option></select>
+                                <div id="deuda-badge-pago" class="hidden whitespace-nowrap bg-red-100 text-red-800 px-4 py-2.5 rounded font-bold border border-red-200 shadow-inner w-full sm:w-auto text-center">Deuda: $0.00</div>
                             </div>
                         </div>
-                        <button type="submit" id="btn-guardar-pago" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-green-700 transition">Guardar Pago</button>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Monto a Pagar ($)</label>
+                                <div class="flex">
+                                    <input type="number" id="pago-monto" step="0.01" min="0.01" class="w-full border p-2.5 rounded-l focus:ring-2 focus:ring-green-500 outline-none" required>
+                                    <button type="button" onclick="autocompletarDeuda()" class="bg-blue-50 px-4 border border-l-0 border-blue-200 rounded-r text-sm font-bold text-blue-700 hover:bg-blue-100 transition shadow-sm" title="Autocompletar con la deuda total">Totalidad</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Fecha del Pago</label>
+                                <input type="date" id="pago-fecha" class="w-full border p-2.5 rounded focus:ring-2 focus:ring-green-500 outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Banco Emisor / Receptor</label>
+                                <input type="text" id="pago-banco" class="w-full border p-2.5 rounded focus:ring-2 focus:ring-green-500 outline-none" placeholder="Ej: Banesco, Mercantil, Zelle" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Referencia Bancaria</label>
+                                <input type="text" id="pago-ref" class="w-full border p-2.5 rounded focus:ring-2 focus:ring-green-500 outline-none" placeholder="N° de Comprobante" required>
+                            </div>
+                        </div>
+                        <button type="submit" id="btn-guardar-pago" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-green-700 transition text-lg">Procesar y Guardar Pago</button>
                     </form>
                 </div>
             </div>
@@ -654,6 +664,50 @@
 
         function cerrarRecibo() { document.getElementById('modal-recibo').classList.add('hidden'); }
 
+        // FUNCIONES DE PAGOS (RADAR Y AUTOCOMPLETAR)
+        let deudaActualSeleccionada = 0;
+
+        function mostrarDeudaPago() {
+            const apto = document.getElementById('select-apto-pago').value;
+            const badge = document.getElementById('deuda-badge-pago');
+            const btnTotalidad = document.querySelector('button[onclick="autocompletarDeuda()"]');
+            
+            if (!apto) {
+                badge.classList.add('hidden');
+                deudaActualSeleccionada = 0;
+                document.getElementById('pago-monto').value = '';
+                return;
+            }
+
+            let vecino = baseDatosVecinos.find(v => v.apto === apto);
+            if (vecino) {
+                let arrastre = vecino.y22 + vecino.y23 + vecino.y24 + vecino.y25 + vecino.y26_em;
+                let cuotaAplicada = (arrastre > 0 || CUOTA_BASE > 0) ? CUOTA_BASE : 0; 
+                deudaActualSeleccionada = arrastre + cuotaAplicada - (vecino.abono || 0);
+                if(deudaActualSeleccionada < 0) deudaActualSeleccionada = 0;
+
+                badge.innerText = 'Deuda: $' + deudaActualSeleccionada.toFixed(2);
+                badge.classList.remove('hidden');
+                
+                if(deudaActualSeleccionada === 0) {
+                    badge.className = 'whitespace-nowrap bg-green-100 text-green-800 px-4 py-2.5 rounded font-bold border border-green-200 shadow-inner w-full sm:w-auto text-center';
+                    badge.innerText = 'Solvente ($0.00)';
+                    btnTotalidad.disabled = true;
+                    btnTotalidad.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    badge.className = 'whitespace-nowrap bg-red-100 text-red-800 px-4 py-2.5 rounded font-bold border border-red-200 shadow-inner w-full sm:w-auto text-center';
+                    btnTotalidad.disabled = false;
+                    btnTotalidad.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+        }
+
+        function autocompletarDeuda() {
+            if(deudaActualSeleccionada > 0) {
+                document.getElementById('pago-monto').value = deudaActualSeleccionada.toFixed(2);
+            }
+        }
+
         // Utilidades Auxiliares
         function filtrarTabla(inputId, tbodyId) {
             let filter = document.getElementById(inputId).value.toLowerCase();
@@ -680,6 +734,24 @@
                 document.getElementById('reporte-header').classList.remove('hidden');
                 descargarPDF('preview-content', 'Reporte_Villacoa');
                 setTimeout(() => document.getElementById('reporte-header').classList.add('hidden'), 1000);
+            } else if (tipo === 'csv') {
+                let csv = [];
+                let rows = document.querySelectorAll("#tabla-preview tr");
+                
+                for (let i = 0; i < rows.length; i++) {
+                    let row = [], cols = rows[i].querySelectorAll("td:not([style*='display: none']), th:not([style*='display: none'])");
+                    for (let j = 0; j < cols.length; j++) 
+                        row.push('"' + cols[j].innerText.replace(/"/g, '""').replace(/\$/g, '') + '"');
+                    csv.push(row.join(","));
+                }
+                
+                let csvFile = new Blob(["\ufeff" + csv.join("\n")], {type: "text/csv;charset=utf-8;"});
+                let downloadLink = document.createElement("a");
+                downloadLink.download = "Reporte_Propietarios.csv";
+                downloadLink.href = window.URL.createObjectURL(csvFile);
+                downloadLink.style.display = "none";
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
             }
         }
 
@@ -688,21 +760,24 @@
             
             const btn = document.getElementById('btn-guardar-pago');
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Guardando en Base de Datos...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Procesando y Guardando...';
 
             const apto = document.getElementById('select-apto-pago').value;
             const monto = parseFloat(document.getElementById('pago-monto').value);
             const fecha = document.getElementById('pago-fecha').value;
-            const referencia = document.getElementById('pago-ref').value || 'Pago por taquilla Web';
+            const banco = document.getElementById('pago-banco').value;
+            const ref = document.getElementById('pago-ref').value;
+            
+            // Unificamos el banco y la referencia para la base de datos
+            const referenciaFinal = `${banco} - Ref: ${ref}`;
 
             if (!apto) {
                 alert("Por favor, seleccione un apartamento válido.");
-                btn.disabled = false; btn.innerText = "Guardar Pago";
+                btn.disabled = false; btn.innerText = "Procesar y Guardar Pago";
                 return;
             }
 
             try {
-                // Llama al archivo /api/addPago.js de Vercel que se conecta con Supabase
                 const response = await fetch('/api/addPago', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -710,24 +785,29 @@
                         apartamento: apto, 
                         monto: monto, 
                         fecha: fecha, 
-                        referencia: referencia 
+                        referencia: referenciaFinal 
                     })
                 });
 
                 const result = await response.json();
 
                 if (result.success) {
-                    // Actualiza el abono localmente para que el sistema visual lo refleje al instante
                     let vecino = baseDatosVecinos.find(v => v.apto === apto);
                     if (vecino) {
                         vecino.abono = (vecino.abono || 0) + monto;
                     }
                     
-                    // Refresca la tabla del Dashboard, Histórico y KPIs para que baje la deuda
                     actualizarTodasLasVistas();
+                    mostrarDeudaPago(); // Actualiza el radar en vivo
                     
-                    alert(`¡Operación Exitosa! El pago de $${monto.toFixed(2)} para el apartamento ${apto} ha sido guardado permanentemente en la nube.`);
-                    e.target.reset(); // Limpia el formulario
+                    alert(`¡PAGO EXITOSO! Se ha abonado $${monto.toFixed(2)} al apartamento ${apto}. Saldo actualizado en la nube.`);
+                    
+                    // Limpia campos bancarios pero deja la fecha en hoy
+                    document.getElementById('pago-monto').value = '';
+                    document.getElementById('pago-banco').value = '';
+                    document.getElementById('pago-ref').value = '';
+                    document.getElementById('select-apto-pago').value = '';
+                    mostrarDeudaPago();
                 } else {
                     throw new Error(result.error?.message || "Error procesando el pago en Supabase.");
                 }
@@ -735,13 +815,11 @@
                 console.error("Error BD:", error);
                 alert("Hubo un fallo de conexión. Asegúrate de que las credenciales de Supabase en Vercel estén correctas.");
             } finally {
-                // Restaura el botón
                 btn.disabled = false;
-                btn.innerText = "Guardar Pago";
+                btn.innerText = "Procesar y Guardar Pago";
             }
         }
 
-        // NUEVO: Función para buscar los datos guardados en la base de datos al abrir la web
         async function cargarDesdeNube() {
             try {
                 const response = await fetch('/api/getPropietarios');
@@ -754,7 +832,7 @@
                         y23: parseFloat(v.y23) || 0,
                         y24: parseFloat(v.y24) || 0,
                         y25: parseFloat(v.y25) || 0,
-                        y26_em: parseFloat(v.y26_em) || 0, // Sincronizado con BD
+                        y26_em: parseFloat(v.y26_em) || 0,
                         abono: parseFloat(v.abono) || 0
                     }));
                     actualizarTodasLasVistas();
@@ -767,7 +845,13 @@
         // Inicializar UI al cargar
         window.onload = () => { 
             actualizarGastosUI(); 
-            cargarDesdeNube(); // Al abrir, pregunta a la base de datos si hay datos guardados
+            cargarDesdeNube();
+            
+            // Autocompletar la fecha del formulario de pagos al día de hoy
+            const hoy = new Date();
+            const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+            const fechaLocal = (new Date(hoy - tzoffset)).toISOString().split('T')[0];
+            document.getElementById('pago-fecha').value = fechaLocal;
         };
     </script>
 </body>
