@@ -589,22 +589,37 @@
             baseDatosVecinos.forEach(v => {
                 let arrastre = v.y22 + v.y23 + v.y24 + v.y25 + v.y26_em;
                 let cuotaAplicada = (arrastre > 0 || CUOTA_BASE > 0) ? CUOTA_BASE : 0; 
-                let deudaFinal = arrastre + cuotaAplicada - v.abono;
+                let deudaFinal = arrastre + cuotaAplicada - (v.abono || 0);
                 if (deudaFinal < 0) deudaFinal = 0;
                 
                 deudaGlobal += deudaFinal;
-                recaudado += v.abono;
-                if(deudaFinal > 0) morosos++;
+                recaudado += v.abono || 0;
+                
+                let isConvenio = v.nombre.includes(" (CONVENIO)");
+                let nombreDisplay = v.nombre.replace(" (CONVENIO)", ""); // Nombre limpio para PDFs e Interfaz
+                
+                let estadoHtml = '';
+                let estadoTexto = '';
+                
+                if (deudaFinal === 0) {
+                    estadoHtml = '<span class="bg-green-100 text-green-800 px-2 py-1 rounded font-bold border border-green-200 text-[10px] uppercase">Solvente</span>';
+                    estadoTexto = 'Solvente';
+                } else if (isConvenio) {
+                    estadoHtml = '<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-bold border border-yellow-300 text-[10px] uppercase">Convenio</span>';
+                    estadoTexto = 'Convenio';
+                } else {
+                    estadoHtml = '<span class="bg-red-100 text-red-800 px-2 py-1 rounded font-bold border border-red-200 text-[10px] uppercase">Moroso</span>';
+                    estadoTexto = 'Moroso';
+                    morosos++; // Solo sumamos al KPI los morosos críticos (sin convenio)
+                }
 
-                let eHtml = deudaFinal > 0 ? '<span class="bg-red-100 text-red-800 px-2 rounded font-bold border border-red-200 text-[10px]">Moroso</span>' : '<span class="bg-green-100 text-green-800 px-2 rounded font-bold border border-green-200 text-[10px]">Solvente</span>';
+                tbDash.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-3 font-bold">${v.apto}</td><td class="p-3 text-sm">${nombreDisplay}</td><td class="p-3 text-center">${estadoHtml}</td><td class="p-3 text-right font-bold text-gray-700">$${deudaFinal.toFixed(2)}</td><td class="p-3 text-center no-print"><div class="flex justify-center space-x-2"><button onclick="armarRecibo('${v.apto}', '${nombreDisplay}', ${v.abono || 0}, ${v.y22}, ${v.y23}, ${v.y24}, ${v.y25}, ${v.y26_em}, ${deudaFinal})" class="bg-gray-100 border px-3 py-1 rounded hover:bg-gray-200 text-gray-700 transition shadow-sm" title="Imprimir Recibo"><i class="fas fa-print"></i></button><button onclick="toggleConvenio('${v.apto}')" class="${isConvenio ? 'bg-yellow-100 border-yellow-300 text-yellow-700 hover:bg-yellow-200' : 'bg-gray-100 border-gray-200 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'} border px-3 py-1 rounded transition shadow-sm" title="Marcar/Desmarcar Convenio de Pago"><i class="fas fa-handshake"></i></button></div></td></tr>`;
                 
-                tbDash.innerHTML += `<tr class="border-b"><td class="p-3 font-bold">${v.apto}</td><td class="p-3">${v.nombre}</td><td class="p-3 text-center">${eHtml}</td><td class="p-3 text-right font-bold">$${deudaFinal.toFixed(2)}</td><td class="p-3 text-center no-print"><button onclick="armarRecibo('${v.apto}', '${v.nombre}', ${v.abono}, ${v.y22}, ${v.y23}, ${v.y24}, ${v.y25}, ${v.y26_em}, ${deudaFinal})" class="bg-gray-100 border px-3 py-1 rounded hover:bg-gray-200"><i class="fas fa-print"></i></button></td></tr>`;
+                tbHist.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-2 font-bold">${v.apto}</td><td class="p-2 text-xs truncate max-w-[120px]" title="${nombreDisplay}">${nombreDisplay}</td><td class="p-2 text-right">$${v.y22.toFixed(2)}</td><td class="p-2 text-right">$${v.y23.toFixed(2)}</td><td class="p-2 text-right">$${v.y24.toFixed(2)}</td><td class="p-2 text-right">$${v.y25.toFixed(2)}</td><td class="p-2 text-right">$${v.y26_em.toFixed(2)}</td><td class="p-2 text-right text-blue-900 bg-blue-50/50 font-bold">$${cuotaAplicada.toFixed(2)}</td><td class="p-2 text-right text-green-700 bg-green-50/50 font-medium">$${(v.abono || 0).toFixed(2)}</td><td class="p-2 text-right font-bold ${deudaFinal>0 && !isConvenio ? 'text-red-600' : (isConvenio ? 'text-yellow-600' : 'text-gray-800')}">$${deudaFinal.toFixed(2)}</td></tr>`;
                 
-                tbHist.innerHTML += `<tr class="border-b"><td class="p-2 font-bold">${v.apto}</td><td class="p-2">${v.nombre}</td><td class="p-2 text-right">$${v.y22.toFixed(2)}</td><td class="p-2 text-right">$${v.y23.toFixed(2)}</td><td class="p-2 text-right">$${v.y24.toFixed(2)}</td><td class="p-2 text-right">$${v.y25.toFixed(2)}</td><td class="p-2 text-right">$${v.y26_em.toFixed(2)}</td><td class="p-2 text-right text-blue-900 bg-blue-50 font-bold">$${cuotaAplicada.toFixed(2)}</td><td class="p-2 text-right text-green-700 bg-green-50">$${v.abono.toFixed(2)}</td><td class="p-2 text-right font-bold ${deudaFinal>0?'text-red-600':''}">$${deudaFinal.toFixed(2)}</td></tr>`;
+                tbPrev.innerHTML += `<tr><td class="p-2 border col-apto-view">${v.apto}</td><td class="p-2 border col-nombre-view text-xs">${nombreDisplay}</td><td class="p-2 border text-center col-estado-view">${estadoTexto}</td><td class="p-2 border text-right col-deuda-view font-medium">$${deudaFinal.toFixed(2)}</td></tr>`;
                 
-                tbPrev.innerHTML += `<tr><td class="p-2 border col-apto-view">${v.apto}</td><td class="p-2 border col-nombre-view">${v.nombre}</td><td class="p-2 border text-center col-estado-view">${deudaFinal>0?'Moroso':'Solvente'}</td><td class="p-2 border text-right col-deuda-view">$${deudaFinal.toFixed(2)}</td></tr>`;
-                
-                selPago.innerHTML += `<option value="${v.apto}">${v.apto} - ${v.nombre}</option>`;
+                selPago.innerHTML += `<option value="${v.apto}">${v.apto} - ${nombreDisplay}</option>`;
             });
 
             document.getElementById('kpi-deuda').innerText = '$' + deudaGlobal.toLocaleString('en-US', {minimumFractionDigits: 2});
@@ -613,6 +628,31 @@
             
             document.getElementById('gran-total-historico').innerText = '$' + deudaGlobal.toLocaleString('en-US', {minimumFractionDigits: 2});
             document.getElementById('tfoot-historico').classList.remove('hidden');
+        }
+
+        async function toggleConvenio(apto) {
+            let vecino = baseDatosVecinos.find(v => v.apto === apto);
+            if (!vecino) return;
+            
+            // Alternamos la etiqueta " (CONVENIO)" de forma oculta en el nombre
+            if (vecino.nombre.includes(" (CONVENIO)")) {
+                vecino.nombre = vecino.nombre.replace(" (CONVENIO)", "");
+            } else {
+                vecino.nombre += " (CONVENIO)";
+            }
+            
+            actualizarTodasLasVistas(); // Actualiza la UI al instante (Amarillo)
+            
+            // Usamos el mensajero que ya existe para actualizar solo este apartamento en Supabase
+            try {
+                await fetch('/api/importarHistorico', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ propietarios: [vecino] })
+                });
+            } catch(error) {
+                console.error("Error guardando el convenio en la nube:", error);
+            }
         }
 
         function armarRecibo(apto, nombre, abono, d22, d23, d24, d25, d26, deudaFinal) {
