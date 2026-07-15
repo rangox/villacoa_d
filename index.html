@@ -139,7 +139,7 @@
                     <div class="flex justify-between items-center mb-4 no-print flex-wrap gap-4">
                         <h3 class="text-xl font-bold text-gray-800">Histórico de Movimientos</h3>
                         <div class="flex space-x-2 items-center">
-                            <input type="text" id="search-historico" placeholder="Buscar Apto..." class="border border-gray-300 rounded px-3 py-1.5 text-sm w-48" onkeyup="filtrarTabla('search-historico', 'tbody-historico')">
+                            <input type="text" id="search-historico" placeholder="Buscar Apto (Ej: 13-B)..." class="border border-gray-300 rounded px-3 py-1.5 text-sm w-48" onkeyup="filtrarHistorico()">
                             <!-- BOTÓN DE IMPORTAR EXCEL -->
                             <input type="file" id="input-excel" accept=".xlsx, .xls, .csv" class="hidden" onchange="procesarExcel(event)">
                             <button onclick="document.getElementById('input-excel').click()" class="bg-green-600 text-white px-4 py-1.5 rounded hover:bg-green-700 text-sm shadow transition font-medium flex items-center">
@@ -232,9 +232,10 @@
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2">Monto a Pagar ($)</label>
                                 <div class="flex">
-                                    <input type="number" id="pago-monto" step="0.01" min="0.01" class="w-full border p-2.5 rounded-l focus:ring-2 focus:ring-green-500 outline-none" required>
+                                    <input type="number" id="pago-monto" step="0.01" min="0.01" class="w-full border p-2.5 rounded-l focus:ring-2 focus:ring-green-500 outline-none" required oninput="calcularEquivalenciaPago()">
                                     <button type="button" onclick="autocompletarDeuda()" class="bg-blue-50 px-4 border border-l-0 border-blue-200 rounded-r text-sm font-bold text-blue-700 hover:bg-blue-100 transition shadow-sm" title="Autocompletar con la deuda total">Totalidad</button>
                                 </div>
+                                <p id="pago-equivalencia" class="text-xs font-semibold text-blue-600 mt-1">Equivalente: Bs. 0.00</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2">Fecha del Pago</label>
@@ -752,7 +753,15 @@
         function autocompletarDeuda() {
             if(deudaActualSeleccionada > 0) {
                 document.getElementById('pago-monto').value = deudaActualSeleccionada.toFixed(2);
+                calcularEquivalenciaPago();
             }
+        }
+
+        function calcularEquivalenciaPago() {
+            const monto = parseFloat(document.getElementById('pago-monto').value) || 0;
+            const tasa = parseFloat(document.getElementById('config-tasa').value) || 667.05;
+            const equivalenteBs = monto * tasa;
+            document.getElementById('pago-equivalencia').innerText = `Equivalente: Bs. ${equivalenteBs.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         }
 
         function filtrarTabla(inputId, tbodyId) {
@@ -761,6 +770,21 @@
             for (let i = 0; i < tr.length; i++) {
                 let txt = tr[i].textContent || tr[i].innerText;
                 tr[i].style.display = txt.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+            }
+        }
+
+        function filtrarHistorico() {
+            let filter = document.getElementById('search-historico').value.toLowerCase();
+            let tbody = document.getElementById('tbody-historico');
+            let tr = tbody.getElementsByTagName('tr');
+            
+            for (let i = 0; i < tr.length; i++) {
+                // Seleccionamos solo la primera columna (índice 0) que es el "Apto"
+                let tdApto = tr[i].getElementsByTagName('td')[0];
+                if (tdApto) {
+                    let txtValue = tdApto.textContent || tdApto.innerText;
+                    tr[i].style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+                }
             }
         }
 
@@ -851,6 +875,7 @@
                     document.getElementById('pago-banco').value = '';
                     document.getElementById('pago-ref').value = '';
                     document.getElementById('select-apto-pago').value = '';
+                    document.getElementById('pago-equivalencia').innerText = 'Equivalente: Bs. 0.00';
                     mostrarDeudaPago();
                 } else {
                     throw new Error(result.error?.message || "Error procesando el pago en Supabase.");
