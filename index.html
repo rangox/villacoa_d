@@ -190,6 +190,15 @@
                                 <label class="flex items-center space-x-2"><input type="checkbox" id="col-estado" checked class="form-checkbox"><span>Estado</span></label>
                                 <label class="flex items-center space-x-2"><input type="checkbox" id="col-deuda" checked class="form-checkbox"><span>Deuda Actual</span></label>
                             </div>
+                            
+                            <h4 class="font-bold text-gray-700 mb-3 text-sm border-t pt-4">Filtrar por Estado (Filas):</h4>
+                            <select id="filtro-estado-reporte" class="w-full border p-2 rounded text-sm mb-6 outline-none focus:ring-2 focus:ring-blue-500" onchange="aplicarFiltroEstado()">
+                                <option value="todos">Todos los Propietarios</option>
+                                <option value="solvente">Solo Solventes (Deuda $0)</option>
+                                <option value="moroso">Solo Morosos</option>
+                                <option value="convenio">Solo Convenio de Pago</option>
+                            </select>
+
                             <div class="flex space-x-2">
                                 <button onclick="exportarReporte('pdf')" class="w-1/2 bg-red-600 text-white p-2 rounded shadow font-medium"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
                                 <button onclick="exportarReporte('csv')" class="w-1/2 bg-green-600 text-white p-2 rounded shadow font-medium"><i class="fas fa-file-excel mr-1"></i> Excel</button>
@@ -636,6 +645,11 @@
             
             document.getElementById('gran-total-historico').innerText = '$' + deudaGlobal.toLocaleString('en-US', {minimumFractionDigits: 2});
             document.getElementById('tfoot-historico').classList.remove('hidden');
+            
+            // Re-aplicar el filtro de estado en la tabla de reportes si el usuario acaba de registrar un pago
+            if (typeof aplicarFiltroEstado === 'function') {
+                aplicarFiltroEstado();
+            }
         }
 
         async function toggleConvenio(apto) {
@@ -799,6 +813,30 @@
             });
         });
 
+        function aplicarFiltroEstado() {
+            let filtro = document.getElementById('filtro-estado-reporte').value;
+            let trs = document.querySelectorAll('#tbody-preview tr');
+            
+            trs.forEach(tr => {
+                // Buscamos la columna de Estado dentro de cada fila
+                let tdEstado = tr.querySelector('.col-estado-view');
+                if (tdEstado) {
+                    let estado = tdEstado.textContent.toLowerCase().trim();
+                    if (filtro === 'todos') {
+                        tr.style.display = '';
+                    } else if (filtro === 'solvente' && estado === 'solvente') {
+                        tr.style.display = '';
+                    } else if (filtro === 'moroso' && estado === 'moroso') {
+                        tr.style.display = '';
+                    } else if (filtro === 'convenio' && estado === 'convenio') {
+                        tr.style.display = '';
+                    } else {
+                        tr.style.display = 'none'; // Oculta los que no coinciden con el selector
+                    }
+                }
+            });
+        }
+
         function exportarReporte(tipo) {
             if(tipo === 'pdf') {
                 document.getElementById('reporte-header').classList.remove('hidden');
@@ -809,6 +847,9 @@
                 let rows = document.querySelectorAll("#tabla-preview tr");
                 
                 for (let i = 0; i < rows.length; i++) {
+                    // Ignorar estrictamente las filas que estén ocultas por el filtro de moroso/solvente
+                    if (rows[i].style.display === 'none') continue;
+                    
                     let row = [], cols = rows[i].querySelectorAll("td:not([style*='display: none']), th:not([style*='display: none'])");
                     for (let j = 0; j < cols.length; j++) 
                         row.push('"' + cols[j].innerText.replace(/"/g, '""').replace(/\$/g, '') + '"');
