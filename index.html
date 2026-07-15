@@ -12,179 +12,989 @@
     <style>
         .view { display: none; }
         .view.active { display: block; animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @media print { .no-print { display: none !important; } body { background-color: white !important; margin: 0; padding: 0; } #modal-recibo { position: absolute; top: 0; left: 0; width: 100%; display:block !important; } }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { background-color: white !important; margin: 0; padding: 0; }
+            #modal-recibo { position: absolute; top: 0; left: 0; width: 100%; background: white; display:block !important; }
+        }
         .table-container { max-height: 60vh; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 0.5rem; }
         thead th { position: sticky; top: 0; background-color: #f8fafc; z-index: 10; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
 <body class="bg-gray-50 flex h-screen overflow-hidden font-sans text-gray-800">
 
-    <aside class="w-64 bg-slate-900 text-white flex flex-col no-print">
+    <aside class="w-64 bg-slate-900 text-white flex flex-col no-print transition-all duration-300 z-30 relative">
         <div class="p-6 text-center border-b border-slate-800">
-            <h1 class="text-lg font-bold">RESIDENCIAS</h1>
+            <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+                <i class="fas fa-building text-2xl"></i>
+            </div>
+            <h1 class="text-lg font-bold tracking-wider">RESIDENCIAS</h1>
             <h2 class="text-xl font-light text-blue-400">VILLACOA</h2>
         </div>
         <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-            <button onclick="changeView('dashboard')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 text-left font-medium bg-slate-800 border-l-4 border-blue-500"><i class="fas fa-chart-pie w-6 text-blue-400"></i> Dashboard</button>
-            <button onclick="changeView('historico')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 text-left font-medium"><i class="fas fa-history w-6 text-green-400"></i> Histórico</button>
-            <button onclick="changeView('propietarios')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 text-left font-medium"><i class="fas fa-users w-6 text-purple-400"></i> Reportes</button>
-            <button onclick="changeView('pagos')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 text-left font-medium"><i class="fas fa-hand-holding-dollar w-6 text-emerald-400"></i> Registrar Pago</button>
-            <button onclick="changeView('egresos')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 text-left font-medium"><i class="fas fa-cogs w-6 text-orange-400"></i> Gastos</button>
+            <button onclick="changeView('dashboard')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium active-nav bg-slate-800 border-l-4 border-blue-500">
+                <i class="fas fa-chart-pie w-6 text-blue-400"></i> Dashboard General
+            </button>
+            <button onclick="changeView('historico')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium">
+                <i class="fas fa-history w-6 text-green-400"></i> Histórico de Deudas
+            </button>
+            <button onclick="changeView('propietarios')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium">
+                <i class="fas fa-users w-6 text-purple-400"></i> Propietarios (Reportes)
+            </button>
+            <button onclick="changeView('pagos')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium">
+                <i class="fas fa-hand-holding-dollar w-6 text-emerald-400"></i> Registrar Pago
+            </button>
+            <button onclick="changeView('egresos')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium">
+                <i class="fas fa-cogs w-6 text-orange-400"></i> Configurar Gastos (Recibo)
+            </button>
         </nav>
+        <div class="p-4 border-t border-slate-800 text-xs text-slate-400 text-center" id="sidebar-mes">
+            Estado de Cuenta<br>Julio 2026
+        </div>
     </aside>
 
-    <main class="flex-1 flex flex-col h-screen overflow-y-auto">
-        <header class="bg-white shadow-sm p-4 flex justify-between items-center no-print border-b">
-            <div><h2 class="text-2xl font-bold" id="header-title">Dashboard General</h2></div>
-            <p class="text-sm">Tasa BCV: <span class="font-bold text-blue-600" id="header-tasa">667.05</span></p>
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto relative">
+        <header class="bg-white shadow-sm p-4 flex justify-between items-center no-print border-b border-gray-200 z-20">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800" id="header-title">Dashboard General</h2>
+                <p class="text-sm text-gray-500"><i class="fas fa-calendar-alt mr-1"></i> Tasa BCV Actual: <span class="font-semibold text-blue-600" id="header-tasa">667.05</span></p>
+            </div>
+            <div class="flex space-x-4">
+                <div class="text-right text-xs bg-blue-50 text-blue-800 p-2 rounded border border-blue-100 shadow-sm hidden md:block">
+                    <p class="font-bold">Banco Exterior: C.C. 0115-004806-048-0034493</p>
+                    <p>RIF: J-31455419-0 | residenciasvillacoa@gmail.com</p>
+                </div>
+            </div>
         </header>
 
-        <div class="p-6 flex-1">
+        <div class="p-6 relative flex-1 bg-gray-50">
+
             <div id="view-dashboard" class="view active">
-                <div class="flex gap-2 mb-4">
-                    <input type="text" id="search-dashboard" placeholder="Apto (Ej: 13-B)..." class="border p-2 rounded w-48 text-sm" onkeyup="filtrarDashboard()">
-                    <select id="filtro-estado-dashboard" class="border p-2 rounded text-sm" onchange="filtrarDashboard()">
-                        <option value="todos">Todos los Estados</option>
-                        <option value="solvente">Solventes</option>
-                        <option value="moroso">Morosos</option>
-                        <option value="convenio">Convenio</option>
-                    </select>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500 flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 font-bold uppercase">Deuda Total</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="kpi-deuda">$0.00</h3>
+                        </div>
+                        <i class="fas fa-exclamation-circle text-3xl text-red-100"></i>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500 flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 font-bold uppercase">Recaudado (Abonos)</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="kpi-recaudado">$0.00</h3>
+                        </div>
+                        <i class="fas fa-check-circle text-3xl text-green-100"></i>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-orange-500 flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 font-bold uppercase">Aptos Morosos</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="kpi-morosos">0</h3>
+                        </div>
+                        <i class="fas fa-users text-3xl text-orange-100"></i>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500 flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 font-bold uppercase">Cuota Base</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="kpi-cuota">$22.27</h3>
+                        </div>
+                        <i class="fas fa-home text-3xl text-blue-100"></i>
+                    </div>
                 </div>
-                <div class="table-container bg-white">
-                    <table class="w-full text-left text-sm" id="tabla-dashboard">
-                        <thead class="bg-slate-100"><tr><th class="p-3">Apto</th><th class="p-3">Propietario</th><th class="p-3 text-center">Estado</th><th class="p-3 text-right">Deuda</th><th class="p-3 text-center">Acción</th></tr></thead>
-                        <tbody id="tbody-dashboard"></tbody>
-                    </table>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4" id="export-dashboard-area">
+                    <div class="flex justify-between items-center mb-4 no-print flex-wrap gap-2">
+                        <h3 class="text-lg font-bold text-gray-700">Estado de Cuenta por Apartamento</h3>
+                        <div class="flex space-x-2 w-full md:w-auto">
+                            <input type="text" id="search-dashboard" placeholder="Buscar Apto..." class="border border-gray-300 rounded px-3 py-1.5 text-sm" onkeyup="filtrarTabla('search-dashboard', 'tbody-dashboard')">
+                            <button onclick="descargarPDF('export-dashboard-area', 'Resumen_Villacoa')" class="bg-gray-800 text-white px-4 py-1.5 rounded text-sm shadow hover:bg-gray-700 transition"><i class="fas fa-file-pdf mr-1"></i> Exportar PDF</button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="w-full text-left text-sm" id="tabla-dashboard">
+                            <thead class="bg-slate-100 text-slate-700">
+                                <tr>
+                                    <th class="p-3 border-b">Apto</th><th class="p-3 border-b">Propietario</th>
+                                    <th class="p-3 border-b text-center">Estado</th><th class="p-3 border-b text-right">Deuda Total</th>
+                                    <th class="p-3 border-b text-center no-print">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-dashboard" class="text-gray-700">
+                                <tr><td colspan="5" class="p-8 text-center text-gray-400 border-2 border-dashed border-gray-200">Importa un archivo Excel en el Histórico para comenzar.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
-            <!-- Historico, Reportes, Pagos, Egresos (Mismo contenido anterior, solo integrado) -->
             <div id="view-historico" class="view">
-                <input type="file" id="input-excel" class="hidden" onchange="procesarExcel(event)">
-                <button onclick="document.getElementById('input-excel').click()" class="bg-green-600 text-white p-2 rounded mb-4">Importar Excel</button>
-                <div class="table-container bg-white"><table class="w-full" id="tabla-historico"><tbody id="tbody-historico"></tbody></table></div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100" id="export-historico-area">
+                    <div class="flex justify-between items-center mb-4 no-print flex-wrap gap-4">
+                        <h3 class="text-xl font-bold text-gray-800">Histórico de Movimientos</h3>
+                        <div class="flex space-x-2 items-center">
+                            <input type="text" id="search-historico" placeholder="Buscar Apto (Ej: 13-B)..." class="border border-gray-300 rounded px-3 py-1.5 text-sm w-48" onkeyup="filtrarHistorico()">
+                            <!-- BOTÓN DE IMPORTAR EXCEL -->
+                            <input type="file" id="input-excel" accept=".xlsx, .xls, .csv" class="hidden" onchange="procesarExcel(event)">
+                            <button onclick="document.getElementById('input-excel').click()" class="bg-green-600 text-white px-4 py-1.5 rounded hover:bg-green-700 text-sm shadow transition font-medium flex items-center">
+                                <i class="fas fa-file-excel mr-2"></i> Importar Excel
+                            </button>
+                            <button onclick="descargarPDF('export-historico-area', 'Historico_Villacoa', 'landscape')" class="bg-gray-800 text-white px-3 py-1.5 rounded hover:bg-gray-700 text-sm shadow transition flex items-center">
+                                <i class="fas fa-file-pdf mr-2"></i> PDF
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="w-full text-left text-xs" id="tabla-historico">
+                            <thead class="bg-slate-100 text-slate-700">
+                                <tr>
+                                    <th class="p-2 border-b">Apto</th><th class="p-2 border-b">Propietario</th>
+                                    <th class="p-2 border-b text-right">2022</th><th class="p-2 border-b text-right">2023</th>
+                                    <th class="p-2 border-b text-right">2024</th><th class="p-2 border-b text-right">2025</th>
+                                    <th class="p-2 border-b text-right">Ene-Jun 26</th>
+                                    <th class="p-2 border-b text-right bg-blue-100 text-blue-900 font-bold">Cuota Base</th>
+                                    <th class="p-2 border-b text-right text-green-700 bg-green-50 font-bold">Abonos</th>
+                                    <th class="p-2 border-b text-right font-bold">Deuda Final</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-historico" class="text-gray-700">
+                                <tr><td colspan="10" class="p-8 text-center text-gray-400 border-2 border-dashed border-gray-200">Esperando archivo Excel...</td></tr>
+                            </tbody>
+                            <tfoot class="bg-slate-800 text-white font-bold hidden" id="tfoot-historico">
+                                <tr>
+                                    <td colspan="9" class="p-3 text-right uppercase tracking-wider text-sm">Total Deuda General (Morosidad):</td>
+                                    <td class="p-3 text-right text-sm text-red-400" id="gran-total-historico">$0.00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
             </div>
-            
+
             <div id="view-propietarios" class="view">
-                <select id="filtro-estado-reporte" class="border p-2 mb-4" onchange="aplicarFiltroEstado()">
-                    <option value="todos">Todos</option><option value="solvente">Solventes</option><option value="moroso">Morosos</option><option value="convenio">Convenio</option>
-                </select>
-                <div class="table-container bg-white" id="preview-content"><table class="w-full" id="tabla-preview"><tbody id="tbody-preview"></tbody></table></div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2"><i class="fas fa-sliders-h mr-2"></i> Reportes Especiales</h3>
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <div class="w-full md:w-1/3 bg-gray-50 p-4 rounded-lg border">
+                            <h4 class="font-bold text-gray-700 mb-3 text-sm">Filtros Visibles:</h4>
+                            <div class="space-y-2 text-sm text-gray-600 mb-6">
+                                <label class="flex items-center space-x-2"><input type="checkbox" id="col-apto" checked class="form-checkbox"><span>Apartamento</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" id="col-nombre" checked class="form-checkbox"><span>Propietario</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" id="col-estado" checked class="form-checkbox"><span>Estado</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" id="col-deuda" checked class="form-checkbox"><span>Deuda Actual</span></label>
+                            </div>
+                            
+                            <h4 class="font-bold text-gray-700 mb-3 text-sm border-t pt-4">Filtrar por Estado (Filas):</h4>
+                            <select id="filtro-estado-reporte" class="w-full border p-2 rounded text-sm mb-6 outline-none focus:ring-2 focus:ring-blue-500" onchange="aplicarFiltroEstado()">
+                                <option value="todos">Todos los Propietarios</option>
+                                <option value="solvente">Solo Solventes (Deuda $0)</option>
+                                <option value="moroso">Solo Morosos</option>
+                                <option value="convenio">Solo Convenio de Pago</option>
+                            </select>
+
+                            <div class="flex space-x-2">
+                                <button onclick="exportarReporte('pdf')" class="w-1/2 bg-red-600 text-white p-2 rounded shadow font-medium"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
+                                <button onclick="exportarReporte('csv')" class="w-1/2 bg-green-600 text-white p-2 rounded shadow font-medium"><i class="fas fa-file-excel mr-1"></i> Excel</button>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-2/3 border rounded-lg overflow-hidden" id="preview-area-container">
+                            <div class="bg-slate-800 text-white p-2 text-center text-xs font-bold uppercase tracking-wider">Vista Previa</div>
+                            <div class="p-4 bg-white" id="preview-content">
+                                <div class="text-center mb-4 hidden" id="reporte-header">
+                                    <h2 class="font-bold text-xl">RESIDENCIAS VILLACOA</h2>
+                                    <p class="text-xs">Reporte de Propietarios</p>
+                                </div>
+                                <table class="w-full text-left text-sm" id="tabla-preview">
+                                    <thead class="bg-gray-100 border-b-2 border-gray-300">
+                                        <tr>
+                                            <th class="p-2 border col-apto-view">Apto</th><th class="p-2 border col-nombre-view">Propietario</th>
+                                            <th class="p-2 border text-center col-estado-view">Estado</th><th class="p-2 border text-right col-deuda-view">Deuda</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-preview"><tr><td colspan="4" class="p-4 text-center text-gray-400">Sin datos</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div id="view-pagos" class="view">
-                <div class="max-w-xl mx-auto bg-white p-6 rounded shadow">
-                    <select id="select-apto-pago" class="w-full border p-2 mb-4" onchange="mostrarDeudaPago()"></select>
-                    <div id="deuda-badge-pago" class="p-3 mb-4 font-bold border rounded hidden text-center"></div>
-                    <input type="number" id="pago-monto" placeholder="Monto ($)" class="w-full border p-2 mb-2" oninput="calcularEquivalenciaPago()">
-                    <button onclick="autocompletarDeuda()" class="bg-blue-100 p-1 text-xs mb-2">Totalidad</button>
-                    <p id="pago-equivalencia" class="mb-4 text-xs">Equivalente: Bs. 0.00</p>
-                    <input type="date" id="pago-fecha" class="w-full border p-2 mb-2">
-                    <input type="text" id="pago-banco" placeholder="Banco" class="w-full border p-2 mb-2">
-                    <input type="text" id="pago-ref" placeholder="Ref" class="w-full border p-2 mb-4">
-                    <button onclick="procesarPago()" class="w-full bg-green-600 text-white p-3 rounded">Guardar Pago</button>
+                <div class="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow border border-gray-100">
+                    <h3 class="text-xl font-bold text-green-700 mb-6 border-b pb-2"><i class="fas fa-hand-holding-dollar mr-2"></i> Registrar Abono o Pago Completo</h3>
+                    <form onsubmit="procesarPago(event)">
+                        <div class="mb-5">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">Seleccione el Apartamento</label>
+                            <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 items-start sm:items-center">
+                                <select id="select-apto-pago" class="w-full border p-2.5 rounded focus:ring-2 focus:ring-green-500 outline-none" required onchange="mostrarDeudaPago()"><option value="">-- Importe un Excel primero --</option></select>
+                                <div id="deuda-badge-pago" class="hidden whitespace-nowrap bg-red-100 text-red-800 px-4 py-2.5 rounded font-bold border border-red-200 shadow-inner w-full sm:w-auto text-center">Deuda: $0.00</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Monto a Pagar ($)</label>
+                                <div class="flex">
+                                    <input type="number" id="pago-monto" step="0.01" min="0.01" class="w-full border p-2.5 rounded-l focus:ring-2 focus:ring-green-500 outline-none" required oninput="calcularEquivalenciaPago()">
+                                    <button type="button" onclick="autocompletarDeuda()" class="bg-blue-50 px-4 border border-l-0 border-blue-200 rounded-r text-sm font-bold text-blue-700 hover:bg-blue-100 transition shadow-sm" title="Autocompletar con la deuda total">Totalidad</button>
+                                </div>
+                                <p id="pago-equivalencia" class="text-xs font-semibold text-blue-600 mt-1">Equivalente: Bs. 0.00</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Fecha del Pago</label>
+                                <input type="date" id="pago-fecha" class="w-full border p-2.5 rounded focus:ring-2 focus:ring-green-500 outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Banco Emisor / Receptor</label>
+                                <input type="text" id="pago-banco" class="w-full border p-2.5 rounded focus:ring-2 focus:ring-green-500 outline-none" placeholder="Ej: Banesco, Zelle, Pago Móvil" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Referencia Bancaria</label>
+                                <input type="text" id="pago-ref" class="w-full border p-2.5 rounded focus:ring-2 focus:ring-green-500 outline-none" placeholder="N° de Comprobante" required>
+                            </div>
+                        </div>
+                        <button type="submit" id="btn-guardar-pago" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-green-700 transition text-lg">Procesar y Guardar Pago</button>
+                    </form>
                 </div>
             </div>
 
             <div id="view-egresos" class="view">
-                <div class="bg-white p-6 rounded"><div class="table-container"><table class="w-full" id="tbody-gastos-config"></table></div></div>
+                <div class="bg-white p-6 rounded-xl shadow border border-gray-100">
+                    <div class="flex justify-between items-center mb-6 border-b pb-4">
+                        <h3 class="text-xl font-bold text-orange-700"><i class="fas fa-cogs mr-2"></i> Configurar Gastos Mensuales (Para Recibo)</h3>
+                        <div class="flex space-x-4">
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 uppercase">Tasa BCV:</label>
+                                <input type="number" step="0.01" id="config-tasa" value="667.05" onchange="actualizarGastosUI()" class="border p-1 w-24 rounded text-sm text-right font-bold bg-gray-50">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 uppercase">Mes a Facturar:</label>
+                                <input type="text" id="config-mes" value="JULIO 2026" class="border p-1 w-32 rounded text-sm bg-gray-50 uppercase text-center font-bold">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Formulario para agregar nuevo gasto -->
+                        <div class="lg:col-span-1 bg-gray-50 p-4 rounded border">
+                            <h4 class="font-bold text-sm text-gray-700 mb-3">Agregar Gasto Común</h4>
+                            <form onsubmit="agregarGasto(event)" class="space-y-3">
+                                <div><label class="text-xs font-bold text-gray-600">Descripción</label><input type="text" id="g-desc" class="w-full p-2 border text-sm rounded" required></div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div><label class="text-xs font-bold text-gray-600">Monto ($)</label><input type="number" step="0.01" id="g-dolar" class="w-full p-2 border text-sm rounded"></div>
+                                    <div><label class="text-xs font-bold text-gray-600">Monto (Bs)</label><input type="number" step="0.01" id="g-bs" class="w-full p-2 border text-sm rounded"></div>
+                                </div>
+                                <p class="text-[10px] text-gray-500 leading-tight">Nota: Si dejas el $ en blanco, se usará solo el Bs. Si pones el $, se calcula el Bs automáticamente.</p>
+                                <button type="submit" class="w-full bg-blue-600 text-white font-bold p-2 text-sm rounded hover:bg-blue-700">Añadir a la lista</button>
+                            </form>
+                            
+                            <div class="mt-6 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
+                                <p class="font-bold text-blue-900 border-b border-blue-200 pb-1 mb-2">Resumen Generado</p>
+                                <div class="flex justify-between mb-1"><span class="text-gray-600 text-xs">Total Gastos (Bs):</span><strong id="res-total-bs">0.00</strong></div>
+                                <div class="flex justify-between mb-1"><span class="text-gray-600 text-xs">Fondo 15% (Bs):</span><strong id="res-fondo-bs">0.00</strong></div>
+                                <div class="flex justify-between mb-2"><span class="text-gray-600 text-xs">Total General (Bs):</span><strong id="res-gran-bs">0.00</strong></div>
+                                <div class="flex justify-between border-t border-blue-200 pt-2"><span class="font-bold text-gray-800">Cuota Base/Apto ($):</span><strong class="text-xl text-blue-700" id="res-cuota-base">0.00</strong></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Lista Editable -->
+                        <div class="lg:col-span-2">
+                            <div class="table-container shadow-none border max-h-[50vh]">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-gray-200 text-gray-700">
+                                        <tr><th class="p-2 border-b">Descripción</th><th class="p-2 border-b text-right w-20">Monto ($)</th><th class="p-2 border-b text-right w-24">Monto (Bs)</th><th class="p-2 border-b text-center w-12"><i class="fas fa-trash"></i></th></tr>
+                                    </thead>
+                                    <tbody id="tbody-gastos-config"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
+
         </div>
     </main>
 
+    <div id="modal-recibo" class="fixed inset-0 bg-slate-900/80 hidden z-[90] flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-y-auto m-4 flex flex-col relative">
+            <button onclick="cerrarRecibo()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 no-print text-2xl z-50"><i class="fas fa-times"></i></button>
+            
+            <div id="recibo-content" class="p-8 bg-white text-sm font-sans text-gray-800 relative">
+                <!-- Membrete idéntico al PDF -->
+                <div class="text-center border-b-2 border-gray-800 pb-3 mb-4">
+                    <h2 class="text-2xl font-bold uppercase tracking-widest text-gray-900">RESIDENCIAS VILLACOA</h2>
+                    <p class="text-xs text-gray-600 mt-1">RIF: J-31455419-0</p>
+                </div>
+                
+                <div class="flex justify-between items-start mb-6">
+                    <div class="w-1/2">
+                        <p class="mb-1 text-xs"><span class="font-bold">Propietario:</span> <span id="r-nombre" class="uppercase"></span></p>
+                        <p class="text-xs"><span class="font-bold">Apto:</span> <span id="r-apto"></span></p>
+                    </div>
+                    <div class="w-1/3 text-right">
+                        <table class="w-full text-[10px] border border-gray-800">
+                            <tr><td class="font-bold border-b border-gray-800 p-1 bg-gray-100">Mes a facturar</td><td class="border-b border-gray-800 p-1 font-bold text-blue-900" id="r-mes"></td></tr>
+                            <tr><td class="font-bold border-b border-gray-800 p-1 bg-gray-100">ALICUOTA (TODOS)</td><td class="border-b border-gray-800 p-1">0.014925373</td></tr>
+                            <tr><td class="font-bold p-1 bg-gray-100">TASA BCV</td><td class="p-1 font-bold text-red-700" id="r-tasa"></td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tabla de Gastos Inyectada Dinámicamente -->
+                <div class="mb-6">
+                    <table class="w-full text-xs border border-gray-800" id="tabla-recibo-pdf">
+                        <thead class="bg-gray-100 border-b-2 border-gray-800">
+                            <tr>
+                                <th class="p-1.5 border-r border-gray-800 text-left w-1/2">Descripción</th>
+                                <th class="p-1.5 border-r border-gray-800 text-right">Monto ($)</th>
+                                <th class="p-1.5 border-r border-gray-800 text-right">Monto (Bs)</th>
+                                <th class="p-1.5 text-right bg-gray-200">Cuota Parte (Bs)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-recibo-gastos" class="text-[10px]">
+                            <!-- Generado por JS -->
+                        </tbody>
+                        <tfoot id="tfoot-recibo-gastos" class="font-bold border-t-2 border-gray-800 text-[11px]">
+                            <!-- Totales generados por JS -->
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Deuda Individual y Pago -->
+                <div class="flex justify-between border-t-2 border-gray-800 pt-4 mt-4">
+                    <div class="w-1/2 pr-4 border-r border-gray-300">
+                        <h4 class="font-bold text-xs uppercase mb-2">Estado de Deuda Anterior</h4>
+                        <table class="w-full text-[10px]">
+                            <tr><td class="py-0.5">Deuda Año 2022:</td><td class="py-0.5 text-right text-red-600" id="r-d22"></td></tr>
+                            <tr><td class="py-0.5">Deuda Año 2023:</td><td class="py-0.5 text-right text-red-600" id="r-d23"></td></tr>
+                            <tr><td class="py-0.5">Deuda Año 2024:</td><td class="py-0.5 text-right text-red-600" id="r-d24"></td></tr>
+                            <tr><td class="py-0.5">Deuda Año 2025:</td><td class="py-0.5 text-right text-red-600" id="r-d25"></td></tr>
+                            <tr><td class="py-0.5 border-b border-gray-300">Ene a Jun 2026:</td><td class="py-0.5 text-right border-b border-gray-300 text-red-600" id="r-d26"></td></tr>
+                            <tr class="font-bold"><td class="py-1">Total Arrastre (Atraso):</td><td class="py-1 text-right text-red-800" id="r-arrastre"></td></tr>
+                            <tr class="font-bold text-green-700"><td class="py-1">Abonos Realizados:</td><td class="py-1 text-right" id="r-abono"></td></tr>
+                        </table>
+                    </div>
+                    <div class="w-1/2 pl-4 flex flex-col justify-between">
+                        <div>
+                            <p class="text-[10px] text-gray-500 italic mb-2">Favor realizar su pago en depósito o transferencia a nombre de RESIDENCIAS VILLACOA. Banco Exterior Cuenta Corriente No. 0115-0048-06-048-0034493</p>
+                        </div>
+                        <div class="text-right bg-blue-50 p-2 rounded border border-blue-200">
+                            <p class="text-xs font-bold uppercase mb-1 text-gray-700">Deuda Total Actualizada</p>
+                            <h2 class="text-2xl font-black text-red-700 leading-none" id="r-total-usd"></h2>
+                            <p class="text-[11px] font-bold text-gray-700 mt-1" id="r-total-bs"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 bg-gray-100 border-t flex justify-end space-x-3 no-print rounded-b-xl">
+                <button onclick="descargarPDF('recibo-content', 'Recibo_Villacoa')" class="px-4 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 shadow"><i class="fas fa-file-pdf mr-2"></i> Descargar PDF</button>
+                <button onclick="window.print()" class="px-4 py-2 bg-gray-800 text-white font-medium rounded hover:bg-gray-900 shadow"><i class="fas fa-print mr-2"></i> Imprimir</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Variables Globales
         let baseDatosVecinos = [];
-        let ALICUOTA = 0.014925373;
-        let CUOTA_BASE = 0;
+        const ALICUOTA = 0.014925373;
+        
+        // Base de datos de gastos predeterminada (Igual a tu PDF para que no arranques en blanco)
+        let gastosMes = [
+            { desc: "LIMPIEZA EDIFICIO CARLOS VALERA", montoD: 180, montoB: 112052.90 },
+            { desc: "ELECT. SERV. GENERALES CTO 488", montoD: 0, montoB: 15354.87 },
+            { desc: "ELECT. ASCENSORES CTO 476", montoD: 0, montoB: 8013.87 },
+            { desc: "DIF ELECTRICIDAD CONSERJERIA", montoD: 0, montoB: 403.30 },
+            { desc: "ELECTRICIDAD DE BOMBAS", montoD: 0, montoB: 11972.28 },
+            { desc: "DEV PROV ELECTRICIDAD ESTAC", montoD: 0, montoB: -154.83 },
+            { desc: "ELECTRICIDAD ESTAC", montoD: 0, montoB: 3406.27 },
+            { desc: "MTTO BOMBAS", montoD: 50, montoB: 31151.00 },
+            { desc: "MTTO ASCENSORES", montoD: 70, montoB: 41118.00 },
+            { desc: "VIGILANCIA", montoD: 190, montoB: 114990.09 },
+            { desc: "VACACIONES VIGILANTE", montoD: 0, montoB: 16738.94 },
+            { desc: "MANTENIMIENTO ESTAC.", montoD: 10, montoB: 6529.70 },
+            { desc: "CUOTA PARTE - CABLE ESTACIONAMIENTO", montoD: 23, montoB: 14205.72 },
+            { desc: "PROV HIDROCAPITAL", montoD: 0, montoB: 97225.89 },
+            { desc: "COLOCACION AGUA", montoD: 30, montoB: 18690.60 },
+            { desc: "50 BOLSAS DE BASURA", montoD: 0, montoB: 9333.15 },
+            { desc: "JARDIN EDIFICIO", montoD: 60, montoB: 39178.20 },
+            { desc: "CUOTA PARTE JARDIN PARCELA", montoD: 30, montoB: 19589.10 },
+            { desc: "INSTALACION CAMARA ESTACIONAMIENTO", montoD: 13.50, montoB: 9005.18 },
+            { desc: "REVISION TUBERIAS DE GAS", montoD: 0, montoB: 19619.10 },
+            { desc: "PROVISION CONTINGENCIA TERREMOTO", montoD: 400, montoB: 266820.00 },
+            { desc: "COMISIONES BANCARIAS", montoD: 0, montoB: 10403.15 }
+        ];
 
-        function changeView(id) {
+        let CUOTA_BASE = 0; // Se calcula automáticamente de los gastos
+
+        // Cambio de vistas
+        function changeView(viewId) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.getElementById('view-' + id).classList.add('active');
+            document.getElementById('view-' + viewId).classList.add('active');
+            document.querySelectorAll('aside nav button').forEach(b => b.classList.remove('bg-slate-800', 'border-l-4', 'border-blue-500'));
+            event.currentTarget.classList.add('bg-slate-800', 'border-l-4', 'border-blue-500');
         }
 
-        function procesarExcel(e) {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                const data = new Uint8Array(ev.target.result);
-                const json = XLSX.utils.sheet_to_json(XLSX.read(data, {type: 'array'}).Sheets[Object.keys(XLSX.read(data, {type: 'array'}).Sheets)[0]], {header: 1, defval: ''});
-                baseDatosVecinos = [];
-                json.forEach(row => {
-                    let aptoIdx = row.findIndex(c => String(c).trim().match(/^(\d{1,2}|PH|PB)-[A-Z0-9]$/i));
-                    if (aptoIdx !== -1) {
-                        let apto = String(row[aptoIdx]).trim();
-                        if (apto === ',' || apto.toLowerCase().includes('total')) return;
-                        let nombre = String(row[aptoIdx + 1] || 'S/N').trim();
-                        const parse = (v) => parseFloat(String(v).replace(/[^0-9.-]+/g,"")) || 0;
-                        baseDatosVecinos.push({ apto, nombre, y22: parse(row[aptoIdx+2]), y23: parse(row[aptoIdx+3]), y24: parse(row[aptoIdx+4]), y25: parse(row[aptoIdx+5]), y26_em: parse(row[aptoIdx+6]), abono: parse(row[aptoIdx+8] || row[aptoIdx+7]) });
-                    }
-                });
-                guardarEnNube();
-            };
-            reader.readAsArrayBuffer(e.target.files[0]);
-        }
+        function actualizarGastosUI() {
+            const tasa = parseFloat(document.getElementById('config-tasa').value) || 667.05;
+            document.getElementById('header-tasa').innerText = tasa.toFixed(2);
+            document.getElementById('r-tasa').innerText = tasa.toFixed(2);
+            document.getElementById('r-mes').innerText = document.getElementById('config-mes').value;
+            document.getElementById('sidebar-mes').innerHTML = `Estado de Cuenta<br>${document.getElementById('config-mes').value}`;
+            
+            let tbody = document.getElementById('tbody-gastos-config');
+            tbody.innerHTML = '';
+            
+            let totalMontoBs = 0;
+            let totalCuotaBs = 0;
 
-        async function guardarEnNube() {
-            await fetch('/api/importarHistorico', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ propietarios: baseDatosVecinos }) });
+            gastosMes.forEach((g, idx) => {
+                let cuotaBs = g.montoB * ALICUOTA;
+                totalMontoBs += g.montoB;
+                totalCuotaBs += cuotaBs;
+
+                tbody.innerHTML += `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-2 border-r truncate max-w-[200px]" title="${g.desc}">${g.desc}</td>
+                        <td class="p-2 border-r text-right">${g.montoD > 0 ? g.montoD.toFixed(2) : ''}</td>
+                        <td class="p-2 border-r text-right">${g.montoB.toFixed(2)}</td>
+                        <td class="p-2 text-center text-red-500 cursor-pointer hover:bg-red-50" onclick="eliminarGasto(${idx})"><i class="fas fa-trash"></i></td>
+                    </tr>`;
+            });
+
+            // Cálculos del Fondo y Totales
+            let fondoBs = totalMontoBs * 0.15;
+            let granTotalBs = totalMontoBs + fondoBs;
+            
+            let fondoCuotaBs = totalCuotaBs * 0.15;
+            let totalCuotaAptoBs = totalCuotaBs + fondoCuotaBs;
+            
+            // Cuota Base Dólares
+            CUOTA_BASE = totalCuotaAptoBs / tasa;
+
+            document.getElementById('res-total-bs').innerText = totalMontoBs.toLocaleString('es-VE', {minimumFractionDigits:2});
+            document.getElementById('res-fondo-bs').innerText = fondoBs.toLocaleString('es-VE', {minimumFractionDigits:2});
+            document.getElementById('res-gran-bs').innerText = granTotalBs.toLocaleString('es-VE', {minimumFractionDigits:2});
+            document.getElementById('res-cuota-base').innerText = '$' + CUOTA_BASE.toFixed(2);
+            document.getElementById('kpi-cuota').innerText = '$' + CUOTA_BASE.toFixed(2);
+
+            // Refrescar vecinos con nueva cuota
             actualizarTodasLasVistas();
         }
 
-        function actualizarTodasLasVistas() {
-            const tbody = document.getElementById('tbody-dashboard');
-            tbody.innerHTML = '';
-            baseDatosVecinos.forEach(v => {
-                let total = Math.round((v.y22 + v.y23 + v.y24 + v.y25 + v.y26_em + CUOTA_BASE - v.abono) * 100) / 100;
-                if (total < 0) total = 0;
-                let status = total === 0 ? 'solvente' : (v.nombre.includes('(CONVENIO)') ? 'convenio' : 'moroso');
-                let tag = status === 'solvente' ? '<span class="bg-green-100 p-1 rounded">Solvente</span>' : (status === 'convenio' ? '<span class="bg-yellow-100 p-1 rounded">Convenio</span>' : '<span class="bg-red-100 p-1 rounded">Moroso</span>');
+        function agregarGasto(e) {
+            e.preventDefault();
+            const desc = document.getElementById('g-desc').value;
+            let d = parseFloat(document.getElementById('g-dolar').value) || 0;
+            let b = parseFloat(document.getElementById('g-bs').value) || 0;
+            const tasa = parseFloat(document.getElementById('config-tasa').value) || 667.05;
+
+            if(d > 0 && b === 0) b = d * tasa; // Si solo puso $, calcula el Bs
+            
+            gastosMes.push({ desc: desc.toUpperCase(), montoD: d, montoB: b });
+            e.target.reset();
+            actualizarGastosUI();
+        }
+
+        function eliminarGasto(idx) {
+            gastosMes.splice(idx, 1);
+            actualizarGastosUI();
+        }
+
+        function procesarExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            
+            reader.onload = async function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
                 
-                tbody.innerHTML += `<tr data-status="${status}" data-apto="${v.apto.toLowerCase()}">
-                    <td class="p-3 font-bold">${v.apto}</td><td>${v.nombre.replace('(CONVENIO)', '')}</td>
-                    <td class="text-center">${tag}</td><td class="text-right">$${total.toFixed(2)}</td>
-                    <td class="text-center"><button onclick="toggleConvenio('${v.apto}')">🤝</button></td>
-                </tr>`;
+                // defval: '' es vital para que respete los espacios en blanco
+                const json = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ''});
+                
+                let nuevosVecinos = [];
+
+                json.forEach(row => {
+                    // Busca el índice de la columna que parece un apartamento
+                    let aptoIdx = row.findIndex(c => String(c).trim().match(/^(\d{1,2}|PH|PB)-[A-Z0-9]$/i));
+                    
+                    if (aptoIdx !== -1) {
+                        let apto = String(row[aptoIdx]).trim();
+                        if (apto === ',' || apto.toLowerCase().includes('total')) return; // ignora totales y basurilla
+
+                        let nombre = String(row[aptoIdx + 1] || 'S/N').trim();
+                        
+                        // PROTECCIÓN VITAL: Mantener "Convenio" si el vecino ya lo tenía en la BD antes de subir el Excel nuevo
+                        let vecinoAntiguo = baseDatosVecinos.find(v => v.apto === apto);
+                        if (vecinoAntiguo && vecinoAntiguo.nombre.includes(" (CONVENIO)")) {
+                            if (!nombre.includes(" (CONVENIO)")) {
+                                nombre += " (CONVENIO)";
+                            }
+                        }
+                        
+                        const parseMonto = (val) => {
+                            if (val === '' || val === null || val === undefined) return 0;
+                            if (typeof val === 'number') return val;
+                            return parseFloat(String(val).replace(/[^0-9.-]+/g,"")) || 0;
+                        };
+
+                        // Lectura con alineación estricta de columnas, saltando la columna del Nombre (aptoIdx + 1)
+                        let y22 = parseMonto(row[aptoIdx + 2]);
+                        let y23 = parseMonto(row[aptoIdx + 3]);
+                        let y24 = parseMonto(row[aptoIdx + 4]);
+                        let y25 = parseMonto(row[aptoIdx + 5]);
+                        let y26_em = parseMonto(row[aptoIdx + 6]);
+                        let abono = parseMonto(row[aptoIdx + 8]) || parseMonto(row[aptoIdx + 7]); 
+
+                        nuevosVecinos.push({ apto, nombre, y22, y23, y24, y25, y26_em, abono });
+                    }
+                });
+
+                if (nuevosVecinos.length === 0) {
+                    alert('No se detectaron apartamentos válidos. Verifica el formato del archivo.');
+                    return;
+                }
+
+                // Guardar en la Nube (Supabase)
+                document.getElementById('gran-total-historico').innerText = 'Sincronizando con Base de Datos...';
+                
+                try {
+                    const response = await fetch('/api/importarHistorico', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ propietarios: nuevosVecinos })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if(result.success) {
+                        baseDatosVecinos = nuevosVecinos;
+                        actualizarTodasLasVistas();
+                        alert(`¡Éxito! ${baseDatosVecinos.length} registros cargados y sincronizados en la Nube.`);
+                    } else {
+                        throw new Error(JSON.stringify(result.error));
+                    }
+                } catch(error) {
+                    console.error("Error BD:", error);
+                    baseDatosVecinos = nuevosVecinos;
+                    actualizarTodasLasVistas();
+                    alert("Carga local completada. (Aviso: No se pudo guardar en la nube en este momento. Revisa tus credenciales).");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function actualizarTodasLasVistas() {
+            let tbDash = document.getElementById('tbody-dashboard');
+            let tbHist = document.getElementById('tbody-historico');
+            let tbPrev = document.getElementById('tbody-preview');
+            let selPago = document.getElementById('select-apto-pago');
+            
+            tbDash.innerHTML = ''; tbHist.innerHTML = ''; tbPrev.innerHTML = ''; selPago.innerHTML = '<option value="">-- Seleccione Apto --</option>';
+            
+            let deudaGlobal = 0, recaudado = 0, morosos = 0;
+
+            baseDatosVecinos.forEach(v => {
+                let arrastre = v.y22 + v.y23 + v.y24 + v.y25 + v.y26_em;
+                let cuotaAplicada = (arrastre > 0 || CUOTA_BASE > 0) ? CUOTA_BASE : 0; 
+                let deudaFinal = arrastre + cuotaAplicada - (v.abono || 0);
+                
+                // CORRECCIÓN VITAL: Redondeo exacto a 2 decimales para matar errores de coma flotante (ej: 0.0000001)
+                deudaFinal = Math.round(deudaFinal * 100) / 100;
+                
+                if (deudaFinal < 0) deudaFinal = 0; // Evitar deudas negativas visualmente
+                
+                deudaGlobal += deudaFinal;
+                recaudado += v.abono || 0;
+                
+                let isConvenio = v.nombre.includes(" (CONVENIO)");
+                let nombreDisplay = v.nombre.replace(" (CONVENIO)", ""); // Nombre limpio para interfaz
+                
+                let estadoHtml = '';
+                let estadoTexto = '';
+                
+                // REGLA CRÍTICA MATEMÁTICA: Si es 0 exacto, es Solvente.
+                if (deudaFinal === 0) {
+                    estadoHtml = '<span class="bg-green-100 text-green-800 px-2 py-1 rounded font-bold border border-green-200 text-[10px] uppercase">Solvente</span>';
+                    estadoTexto = 'Solvente';
+                } else if (isConvenio) {
+                    estadoHtml = '<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-bold border border-yellow-300 text-[10px] uppercase">Convenio</span>';
+                    estadoTexto = 'Convenio';
+                } else {
+                    estadoHtml = '<span class="bg-red-100 text-red-800 px-2 py-1 rounded font-bold border border-red-200 text-[10px] uppercase">Moroso</span>';
+                    estadoTexto = 'Moroso';
+                    morosos++; // El KPI solo cuenta los morosos que no tienen convenio
+                }
+
+                tbDash.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-3 font-bold">${v.apto}</td><td class="p-3 text-sm">${nombreDisplay}</td><td class="p-3 text-center">${estadoHtml}</td><td class="p-3 text-right font-bold text-gray-700">$${deudaFinal.toFixed(2)}</td><td class="p-3 text-center no-print"><div class="flex justify-center space-x-2"><button onclick="armarRecibo('${v.apto}', '${nombreDisplay}', ${v.abono || 0}, ${v.y22}, ${v.y23}, ${v.y24}, ${v.y25}, ${v.y26_em}, ${deudaFinal})" class="bg-gray-100 border px-3 py-1 rounded hover:bg-gray-200 text-gray-700 transition shadow-sm" title="Imprimir Recibo"><i class="fas fa-print"></i></button><button onclick="toggleConvenio('${v.apto}')" class="${isConvenio ? 'bg-yellow-100 border-yellow-300 text-yellow-700 hover:bg-yellow-200' : 'bg-gray-100 border-gray-200 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'} border px-3 py-1 rounded transition shadow-sm" title="Marcar/Desmarcar Convenio de Pago"><i class="fas fa-handshake"></i></button></div></td></tr>`;
+                
+                tbHist.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-2 font-bold">${v.apto}</td><td class="p-2 text-xs truncate max-w-[120px]" title="${nombreDisplay}">${nombreDisplay}</td><td class="p-2 text-right">$${v.y22.toFixed(2)}</td><td class="p-2 text-right">$${v.y23.toFixed(2)}</td><td class="p-2 text-right">$${v.y24.toFixed(2)}</td><td class="p-2 text-right">$${v.y25.toFixed(2)}</td><td class="p-2 text-right">$${v.y26_em.toFixed(2)}</td><td class="p-2 text-right text-blue-900 bg-blue-50/50 font-bold">$${cuotaAplicada.toFixed(2)}</td><td class="p-2 text-right text-green-700 bg-green-50/50 font-medium">$${(v.abono || 0).toFixed(2)}</td><td class="p-2 text-right font-bold ${deudaFinal>0 && !isConvenio ? 'text-red-600' : (isConvenio ? 'text-yellow-600' : 'text-gray-800')}">$${deudaFinal.toFixed(2)}</td></tr>`;
+                
+                tbPrev.innerHTML += `<tr><td class="p-2 border col-apto-view">${v.apto}</td><td class="p-2 border col-nombre-view text-xs">${nombreDisplay}</td><td class="p-2 border text-center col-estado-view">${estadoTexto}</td><td class="p-2 border text-right col-deuda-view font-medium">$${deudaFinal.toFixed(2)}</td></tr>`;
+                
+                selPago.innerHTML += `<option value="${v.apto}">${v.apto} - ${nombreDisplay}</option>`;
             });
+
+            document.getElementById('kpi-deuda').innerText = '$' + deudaGlobal.toLocaleString('en-US', {minimumFractionDigits: 2});
+            document.getElementById('kpi-recaudado').innerText = '$' + recaudado.toLocaleString('en-US', {minimumFractionDigits: 2});
+            document.getElementById('kpi-morosos').innerText = morosos;
+            
+            document.getElementById('gran-total-historico').innerText = '$' + deudaGlobal.toLocaleString('en-US', {minimumFractionDigits: 2});
+            document.getElementById('tfoot-historico').classList.remove('hidden');
+            
+            // Re-aplicar el filtro de estado en la tabla de reportes si el usuario acaba de registrar un pago
+            if (typeof aplicarFiltroEstado === 'function') {
+                aplicarFiltroEstado();
+            }
         }
 
         async function toggleConvenio(apto) {
-            let v = baseDatosVecinos.find(x => x.apto === apto);
-            v.nombre = v.nombre.includes('(CONVENIO)') ? v.nombre.replace('(CONVENIO)', '') : v.nombre + '(CONVENIO)';
-            guardarEnNube();
+            let vecino = baseDatosVecinos.find(v => v.apto === apto);
+            if (!vecino) return;
+            
+            // Alternamos la etiqueta " (CONVENIO)" de forma oculta en el nombre
+            if (vecino.nombre.includes(" (CONVENIO)")) {
+                vecino.nombre = vecino.nombre.replace(" (CONVENIO)", "");
+            } else {
+                vecino.nombre += " (CONVENIO)";
+            }
+            
+            actualizarTodasLasVistas(); // Actualiza la UI al instante (Amarillo)
+            
+            // Enviamos un micro-update a Supabase solo para este apartamento
+            try {
+                await fetch('/api/importarHistorico', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ propietarios: [vecino] })
+                });
+            } catch(error) {
+                console.error("Error guardando el convenio en la nube:", error);
+            }
         }
 
-        function filtrarDashboard() {
-            const text = document.getElementById('search-dashboard').value.toLowerCase();
-            const status = document.getElementById('filtro-estado-dashboard').value;
-            document.querySelectorAll('#tbody-dashboard tr').forEach(tr => {
-                const matchText = tr.dataset.apto.includes(text);
-                const matchStatus = status === 'todos' || tr.dataset.status === status;
-                tr.style.display = (matchText && matchStatus) ? '' : 'none';
+        function armarRecibo(apto, nombre, abono, d22, d23, d24, d25, d26, deudaFinal) {
+            document.getElementById('r-apto').innerText = apto;
+            document.getElementById('r-nombre').innerText = nombre; // Viene limpio de (CONVENIO)
+            const tasa = parseFloat(document.getElementById('config-tasa').value) || 667.05;
+
+            // Llenar tabla interna del recibo con los gastos actuales configurados
+            let tbGastos = document.getElementById('tbody-recibo-gastos');
+            let tfGastos = document.getElementById('tfoot-recibo-gastos');
+            tbGastos.innerHTML = '';
+            
+            let totalMontoBs = 0, totalCuotaBs = 0;
+            gastosMes.forEach(g => {
+                let cuotaBs = g.montoB * ALICUOTA;
+                totalMontoBs += g.montoB;
+                totalCuotaBs += cuotaBs;
+                tbGastos.innerHTML += `<tr><td class="p-1 border-r border-b border-gray-400">${g.desc}</td><td class="p-1 border-r border-b border-gray-400 text-right">${g.montoD>0?g.montoD.toFixed(2):''}</td><td class="p-1 border-r border-b border-gray-400 text-right">${g.montoB.toLocaleString('es-VE',{minimumFractionDigits:2})}</td><td class="p-1 text-right border-b border-gray-400">${cuotaBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>`;
             });
+
+            let fondoBs = totalMontoBs * 0.15;
+            let fondoCuotaBs = totalCuotaBs * 0.15;
+            let granTotalBs = totalMontoBs + fondoBs;
+            let totalPagarBs = totalCuotaBs + fondoCuotaBs;
+            
+            tfGastos.innerHTML = `
+                <tr><td colspan="2" class="p-1 border-r border-gray-800 text-right">TOTAL GASTOS COMUNES</td><td class="p-1 border-r border-gray-800 text-right">${totalMontoBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td><td class="p-1 text-right">${totalCuotaBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>
+                <tr class="text-blue-800"><td colspan="2" class="p-1 border-r border-gray-800 text-right">FONDO ANTI INFLACIONARIO (15%)</td><td class="p-1 border-r border-gray-800 text-right">${fondoBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td><td class="p-1 text-right">${fondoCuotaBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>
+                <tr class="bg-gray-200 text-gray-900 text-[12px]"><td colspan="2" class="p-1 border-r border-gray-800 text-right">TOTAL GASTOS</td><td class="p-1 border-r border-gray-800 text-right">${granTotalBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td><td class="p-1 text-right">${totalPagarBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>
+                <tr class="bg-gray-300 text-black text-[13px]"><td colspan="3" class="p-1 text-right font-black border-r border-gray-800">TOTAL A PAGAR BOLIVARES (MES)</td><td class="p-1 text-right font-black">${totalPagarBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>
+                <tr class="bg-blue-100 text-blue-900 text-[13px]"><td colspan="3" class="p-1 text-right font-black border-r border-blue-300">TOTAL A PAGAR DOLARES (CUOTA BASE)</td><td class="p-1 text-right font-black">$${(totalPagarBs/tasa).toFixed(2)}</td></tr>
+            `;
+
+            // Deuda Individual del Apartamento seleccionado
+            let arrastre = d22 + d23 + d24 + d25 + d26;
+            document.getElementById('r-d22').innerText = '$' + d22.toFixed(2);
+            document.getElementById('r-d23').innerText = '$' + d23.toFixed(2);
+            document.getElementById('r-d24').innerText = '$' + d24.toFixed(2);
+            document.getElementById('r-d25').innerText = '$' + d25.toFixed(2);
+            document.getElementById('r-d26').innerText = '$' + d26.toFixed(2);
+            document.getElementById('r-arrastre').innerText = '$' + arrastre.toFixed(2);
+            document.getElementById('r-abono').innerText = '-$' + abono.toFixed(2);
+            
+            document.getElementById('r-total-usd').innerText = '$' + deudaFinal.toFixed(2);
+            document.getElementById('r-total-bs').innerText = 'Equiv. Bs. ' + (deudaFinal * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2});
+
+            document.getElementById('modal-recibo').classList.remove('hidden');
         }
+
+        function cerrarRecibo() { document.getElementById('modal-recibo').classList.add('hidden'); }
+
+        // FUNCIONES DE PAGOS (RADAR Y AUTOCOMPLETAR)
+        let deudaActualSeleccionada = 0;
 
         function mostrarDeudaPago() {
-            const v = baseDatosVecinos.find(x => x.apto === document.getElementById('select-apto-pago').value);
-            if (!v) return;
-            const deuda = Math.round((v.y22 + v.y23 + v.y24 + v.y25 + v.y26_em + CUOTA_BASE - v.abono) * 100) / 100;
+            const apto = document.getElementById('select-apto-pago').value;
             const badge = document.getElementById('deuda-badge-pago');
-            badge.innerText = 'Deuda: $' + (deuda < 0 ? 0 : deuda).toFixed(2);
-            badge.className = deuda <= 0 ? 'p-3 mb-4 font-bold border rounded text-center bg-green-100 text-green-800' : 'p-3 mb-4 font-bold border rounded text-center bg-red-100 text-red-800';
-            badge.classList.remove('hidden');
+            const btnTotalidad = document.querySelector('button[onclick="autocompletarDeuda()"]');
+            
+            if (!apto) {
+                badge.classList.add('hidden');
+                deudaActualSeleccionada = 0;
+                document.getElementById('pago-monto').value = '';
+                return;
+            }
+
+            let vecino = baseDatosVecinos.find(v => v.apto === apto);
+            if (vecino) {
+                let arrastre = vecino.y22 + vecino.y23 + vecino.y24 + vecino.y25 + vecino.y26_em;
+                let cuotaAplicada = (arrastre > 0 || CUOTA_BASE > 0) ? CUOTA_BASE : 0; 
+                deudaActualSeleccionada = arrastre + cuotaAplicada - (vecino.abono || 0);
+                
+                // CORRECCIÓN VITAL: Redondeo exacto a 2 decimales
+                deudaActualSeleccionada = Math.round(deudaActualSeleccionada * 100) / 100;
+                
+                if(deudaActualSeleccionada < 0) deudaActualSeleccionada = 0;
+
+                badge.innerText = 'Deuda: $' + deudaActualSeleccionada.toFixed(2);
+                badge.classList.remove('hidden');
+                
+                if(deudaActualSeleccionada === 0) {
+                    badge.className = 'whitespace-nowrap bg-green-100 text-green-800 px-4 py-2.5 rounded font-bold border border-green-200 shadow-inner w-full sm:w-auto text-center';
+                    badge.innerText = 'Solvente ($0.00)';
+                    btnTotalidad.disabled = true;
+                    btnTotalidad.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    badge.className = 'whitespace-nowrap bg-red-100 text-red-800 px-4 py-2.5 rounded font-bold border border-red-200 shadow-inner w-full sm:w-auto text-center';
+                    btnTotalidad.disabled = false;
+                    btnTotalidad.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+        }
+
+        function autocompletarDeuda() {
+            if(deudaActualSeleccionada > 0) {
+                document.getElementById('pago-monto').value = deudaActualSeleccionada.toFixed(2);
+                calcularEquivalenciaPago();
+            }
         }
 
         function calcularEquivalenciaPago() {
-            const m = parseFloat(document.getElementById('pago-monto').value) || 0;
-            const tasa = parseFloat(document.getElementById('header-tasa').innerText) || 667.05;
-            document.getElementById('pago-equivalencia').innerText = 'Equivalente: Bs. ' + (m * tasa).toLocaleString('es-VE', {minimumFractionDigits:2});
+            const monto = parseFloat(document.getElementById('pago-monto').value) || 0;
+            const tasa = parseFloat(document.getElementById('config-tasa').value) || 667.05;
+            const equivalenteBs = monto * tasa;
+            document.getElementById('pago-equivalencia').innerText = `Equivalente: Bs. ${equivalenteBs.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         }
 
-        async function procesarPago() {
-            const pago = { apartamento: document.getElementById('select-apto-pago').value, monto: document.getElementById('pago-monto').value, fecha: document.getElementById('pago-fecha').value, referencia: document.getElementById('pago-banco').value + ' - ' + document.getElementById('pago-ref').value };
-            const res = await fetch('/api/addPago', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(pago) });
-            if ((await res.json()).success) { alert('Pago procesado'); actualizarTodasLasVistas(); } else { alert('Error conectando a BD'); }
+        function filtrarDashboard() {
+            let filterText = document.getElementById('search-dashboard').value.toLowerCase();
+            let filterEstado = document.getElementById('filtro-estado-dashboard').value;
+            let trs = document.getElementById('tbody-dashboard').getElementsByTagName('tr');
+            
+            for (let i = 0; i < trs.length; i++) {
+                let tdApto = trs[i].getElementsByTagName('td')[0];
+                let tdEstado = trs[i].getElementsByTagName('td')[2];
+                
+                if (tdApto && tdEstado) {
+                    let aptoValue = tdApto.textContent || tdApto.innerText;
+                    let estadoValue = tdEstado.textContent.toLowerCase().trim();
+                    
+                    // Buscar coincidencia de texto SOLO en la columna de Apartamento (tdApto)
+                    let matchApto = aptoValue.toLowerCase().indexOf(filterText) > -1;
+                    // Buscar coincidencia en el menú desplegable de Estado
+                    let matchEstado = filterEstado === 'todos' || estadoValue === filterEstado;
+                    
+                    // Si cumple ambas condiciones, se muestra. Si no, se oculta.
+                    trs[i].style.display = (matchApto && matchEstado) ? "" : "none";
+                }
+            }
         }
 
-        window.onload = () => { /* Inicia carga desde nube */ };
+        function filtrarTabla(inputId, tbodyId) {
+            let filter = document.getElementById(inputId).value.toLowerCase();
+            let tr = document.getElementById(tbodyId).getElementsByTagName('tr');
+            for (let i = 0; i < tr.length; i++) {
+                let txt = tr[i].textContent || tr[i].innerText;
+                tr[i].style.display = txt.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+            }
+        }
+
+        function filtrarHistorico() {
+            let filter = document.getElementById('search-historico').value.toLowerCase();
+            let tbody = document.getElementById('tbody-historico');
+            let tr = tbody.getElementsByTagName('tr');
+            
+            for (let i = 0; i < tr.length; i++) {
+                // Seleccionamos solo la primera columna (índice 0) que es el "Apto"
+                let tdApto = tr[i].getElementsByTagName('td')[0];
+                if (tdApto) {
+                    let txtValue = tdApto.textContent || tdApto.innerText;
+                    tr[i].style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+                }
+            }
+        }
+
+        function descargarPDF(elementId, filename, format = 'portrait') {
+            html2pdf().set({ margin: 10, filename: filename + '.pdf', jsPDF: { unit: 'mm', format: 'a4', orientation: format } }).from(document.getElementById(elementId)).save();
+        }
+
+        ['apto', 'nombre', 'estado', 'deuda'].forEach(col => {
+            const checkbox = document.getElementById(`col-${col}`);
+            if(checkbox) checkbox.addEventListener('change', (e) => {
+                document.querySelectorAll(`.col-${col}-view`).forEach(el => el.style.display = e.target.checked ? '' : 'none');
+            });
+        });
+
+        function aplicarFiltroEstado() {
+            let filtro = document.getElementById('filtro-estado-reporte').value;
+            let trs = document.querySelectorAll('#tbody-preview tr');
+            
+            trs.forEach(tr => {
+                // Buscamos la columna de Estado dentro de cada fila
+                let tdEstado = tr.querySelector('.col-estado-view');
+                if (tdEstado) {
+                    let estado = tdEstado.textContent.toLowerCase().trim();
+                    if (filtro === 'todos') {
+                        tr.style.display = '';
+                    } else if (filtro === 'solvente' && estado === 'solvente') {
+                        tr.style.display = '';
+                    } else if (filtro === 'moroso' && estado === 'moroso') {
+                        tr.style.display = '';
+                    } else if (filtro === 'convenio' && estado === 'convenio') {
+                        tr.style.display = '';
+                    } else {
+                        tr.style.display = 'none'; // Oculta los que no coinciden con el selector
+                    }
+                }
+            });
+        }
+
+        function exportarReporte(tipo) {
+            if(tipo === 'pdf') {
+                document.getElementById('reporte-header').classList.remove('hidden');
+                descargarPDF('preview-content', 'Reporte_Villacoa');
+                setTimeout(() => document.getElementById('reporte-header').classList.add('hidden'), 1000);
+            } else if (tipo === 'csv') {
+                let csv = [];
+                let rows = document.querySelectorAll("#tabla-preview tr");
+                
+                for (let i = 0; i < rows.length; i++) {
+                    // Ignorar estrictamente las filas que estén ocultas por el filtro de moroso/solvente
+                    if (rows[i].style.display === 'none') continue;
+                    
+                    let row = [], cols = rows[i].querySelectorAll("td:not([style*='display: none']), th:not([style*='display: none'])");
+                    for (let j = 0; j < cols.length; j++) 
+                        row.push('"' + cols[j].innerText.replace(/"/g, '""').replace(/\$/g, '') + '"');
+                    csv.push(row.join(","));
+                }
+                
+                let csvFile = new Blob(["\ufeff" + csv.join("\n")], {type: "text/csv;charset=utf-8;"});
+                let downloadLink = document.createElement("a");
+                downloadLink.download = "Reporte_Propietarios.csv";
+                downloadLink.href = window.URL.createObjectURL(csvFile);
+                downloadLink.style.display = "none";
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+            }
+        }
+
+        async function procesarPago(e) { 
+            e.preventDefault(); 
+            
+            const btn = document.getElementById('btn-guardar-pago');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Procesando...';
+
+            const apto = document.getElementById('select-apto-pago').value;
+            const monto = parseFloat(document.getElementById('pago-monto').value);
+            const fecha = document.getElementById('pago-fecha').value;
+            const banco = document.getElementById('pago-banco').value;
+            const ref = document.getElementById('pago-ref').value;
+            
+            const referenciaFinal = `${banco} - Ref: ${ref}`;
+
+            if (!apto) {
+                alert("Por favor, seleccione un apartamento válido.");
+                btn.disabled = false; btn.innerText = "Procesar y Guardar Pago";
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/addPago', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        apartamento: apto, 
+                        monto: monto, 
+                        fecha: fecha, 
+                        referencia: referenciaFinal 
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    let vecino = baseDatosVecinos.find(v => v.apto === apto);
+                    if (vecino) {
+                        vecino.abono = (vecino.abono || 0) + monto;
+                    }
+                    
+                    actualizarTodasLasVistas();
+                    mostrarDeudaPago(); 
+                    
+                    alert(`¡PAGO EXITOSO! Se ha abonado $${monto.toFixed(2)} al apartamento ${apto}. Saldo actualizado.`);
+                    
+                    document.getElementById('pago-monto').value = '';
+                    document.getElementById('pago-banco').value = '';
+                    document.getElementById('pago-ref').value = '';
+                    document.getElementById('select-apto-pago').value = '';
+                    document.getElementById('pago-equivalencia').innerText = 'Equivalente: Bs. 0.00';
+                    mostrarDeudaPago();
+                } else {
+                    throw new Error(result.error?.message || "Error procesando el pago en Supabase.");
+                }
+            } catch (error) {
+                console.error("Error BD:", error);
+                alert("Hubo un fallo de conexión. Asegúrate de que las credenciales de Supabase en Vercel estén correctas.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Procesar y Guardar Pago";
+            }
+        }
+
+        async function cargarDesdeNube() {
+            try {
+                const response = await fetch('/api/getPropietarios');
+                const result = await response.json();
+                if (result.success && result.data && result.data.length > 0) {
+                    baseDatosVecinos = result.data.map(v => ({
+                        apto: v.apto,
+                        nombre: v.nombre,
+                        y22: parseFloat(v.y22) || 0,
+                        y23: parseFloat(v.y23) || 0,
+                        y24: parseFloat(v.y24) || 0,
+                        y25: parseFloat(v.y25) || 0,
+                        y26_em: parseFloat(v.y26_em) || 0,
+                        abono: parseFloat(v.abono) || 0
+                    }));
+                    actualizarTodasLasVistas();
+                }
+            } catch (error) {
+                console.log("Iniciando en blanco o en modo local (sin conexión a BD).");
+            }
+        }
+
+        // Inicializar UI al cargar
+        window.onload = () => { 
+            actualizarGastosUI(); 
+            cargarDesdeNube();
+            
+            // Autocompletar la fecha del formulario de pagos
+            const hoy = new Date();
+            const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+            const fechaLocal = (new Date(hoy - tzoffset)).toISOString().split('T')[0];
+            document.getElementById('pago-fecha').value = fechaLocal;
+        };
     </script>
 </body>
 </html>
