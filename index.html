@@ -606,6 +606,10 @@
                 let arrastre = v.y22 + v.y23 + v.y24 + v.y25 + v.y26_em;
                 let cuotaAplicada = (arrastre > 0 || CUOTA_BASE > 0) ? CUOTA_BASE : 0; 
                 let deudaFinal = arrastre + cuotaAplicada - (v.abono || 0);
+                
+                // CORRECCIÓN VITAL: Redondeo exacto a 2 decimales para matar errores de coma flotante (ej: 0.0000001)
+                deudaFinal = Math.round(deudaFinal * 100) / 100;
+                
                 if (deudaFinal < 0) deudaFinal = 0; // Evitar deudas negativas visualmente
                 
                 deudaGlobal += deudaFinal;
@@ -617,8 +621,8 @@
                 let estadoHtml = '';
                 let estadoTexto = '';
                 
-                // REGLA CRÍTICA: 0 es Solvente. Si debe pero tiene convenio, es Amarillo. Si no, Rojo.
-                if (deudaFinal <= 0) {
+                // REGLA CRÍTICA MATEMÁTICA: Si es 0 exacto, es Solvente.
+                if (deudaFinal === 0) {
                     estadoHtml = '<span class="bg-green-100 text-green-800 px-2 py-1 rounded font-bold border border-green-200 text-[10px] uppercase">Solvente</span>';
                     estadoTexto = 'Solvente';
                 } else if (isConvenio) {
@@ -746,6 +750,10 @@
                 let arrastre = vecino.y22 + vecino.y23 + vecino.y24 + vecino.y25 + vecino.y26_em;
                 let cuotaAplicada = (arrastre > 0 || CUOTA_BASE > 0) ? CUOTA_BASE : 0; 
                 deudaActualSeleccionada = arrastre + cuotaAplicada - (vecino.abono || 0);
+                
+                // CORRECCIÓN VITAL: Redondeo exacto a 2 decimales
+                deudaActualSeleccionada = Math.round(deudaActualSeleccionada * 100) / 100;
+                
                 if(deudaActualSeleccionada < 0) deudaActualSeleccionada = 0;
 
                 badge.innerText = 'Deuda: $' + deudaActualSeleccionada.toFixed(2);
