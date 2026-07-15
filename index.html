@@ -225,17 +225,21 @@
                             <label class="block text-sm font-bold text-gray-700 mb-2">Seleccione el Apartamento</label>
                             <select id="select-apto-pago" class="w-full border p-2.5 rounded" required><option value="">-- Importe un Excel primero --</option></select>
                         </div>
-                        <div class="grid grid-cols-2 gap-5 mb-5">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2">Monto ($)</label>
-                                <input type="number" step="0.01" class="w-full border p-2.5 rounded" required>
+                                <input type="number" id="pago-monto" step="0.01" class="w-full border p-2.5 rounded" required>
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2">Fecha</label>
-                                <input type="date" class="w-full border p-2.5 rounded" required>
+                                <input type="date" id="pago-fecha" class="w-full border p-2.5 rounded" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Referencia</label>
+                                <input type="text" id="pago-ref" class="w-full border p-2.5 rounded" placeholder="Ej: Zelle, Banesco...">
                             </div>
                         </div>
-                        <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-green-700">Guardar Pago</button>
+                        <button type="submit" id="btn-guardar-pago" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-green-700 transition">Guardar Pago</button>
                     </form>
                 </div>
             </div>
@@ -679,7 +683,63 @@
             }
         }
 
-        function procesarPago(e) { e.preventDefault(); alert('Pago de prueba registrado en sistema local.'); e.target.reset(); }
+        async function procesarPago(e) { 
+            e.preventDefault(); 
+            
+            const btn = document.getElementById('btn-guardar-pago');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Guardando en Base de Datos...';
+
+            const apto = document.getElementById('select-apto-pago').value;
+            const monto = parseFloat(document.getElementById('pago-monto').value);
+            const fecha = document.getElementById('pago-fecha').value;
+            const referencia = document.getElementById('pago-ref').value || 'Pago por taquilla Web';
+
+            if (!apto) {
+                alert("Por favor, seleccione un apartamento válido.");
+                btn.disabled = false; btn.innerText = "Guardar Pago";
+                return;
+            }
+
+            try {
+                // Llama al archivo /api/addPago.js de Vercel que se conecta con Supabase
+                const response = await fetch('/api/addPago', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        apartamento: apto, 
+                        monto: monto, 
+                        fecha: fecha, 
+                        referencia: referencia 
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Actualiza el abono localmente para que el sistema visual lo refleje al instante
+                    let vecino = baseDatosVecinos.find(v => v.apto === apto);
+                    if (vecino) {
+                        vecino.abono = (vecino.abono || 0) + monto;
+                    }
+                    
+                    // Refresca la tabla del Dashboard, Histórico y KPIs para que baje la deuda
+                    actualizarTodasLasVistas();
+                    
+                    alert(`¡Operación Exitosa! El pago de $${monto.toFixed(2)} para el apartamento ${apto} ha sido guardado permanentemente en la nube.`);
+                    e.target.reset(); // Limpia el formulario
+                } else {
+                    throw new Error(result.error?.message || "Error procesando el pago en Supabase.");
+                }
+            } catch (error) {
+                console.error("Error BD:", error);
+                alert("Hubo un fallo de conexión. Asegúrate de que las credenciales de Supabase en Vercel estén correctas.");
+            } finally {
+                // Restaura el botón
+                btn.disabled = false;
+                btn.innerText = "Guardar Pago";
+            }
+        }
 
         // NUEVO: Función para buscar los datos guardados en la base de datos al abrir la web
         async function cargarDesdeNube() {
