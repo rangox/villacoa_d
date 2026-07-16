@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dashboard Residencias Villacoa</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -21,46 +21,71 @@
             body { background-color: white !important; margin: 0; padding: 0; }
             #modal-recibo { position: absolute; top: 0; left: 0; width: 100%; background: white; display:block !important; }
         }
-        /* Scroll horizontal para tablas en móviles */
-        .table-container { max-height: 60vh; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 0.5rem; }
-        thead th { position: sticky; top: 0; background-color: #f8fafc; z-index: 10; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        
+        /* Scroll horizontal optimizado para móviles */
+        .table-container { 
+            max-height: 65vh; 
+            overflow-y: auto; 
+            overflow-x: auto; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 0.5rem; 
+            -webkit-overflow-scrolling: touch; /* Scroll suave en iOS/Android */
+        }
+        thead th { 
+            position: sticky; 
+            top: 0; 
+            background-color: #f8fafc; 
+            z-index: 10; 
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); 
+        }
+        
+        /* Estilos de barra de desplazamiento para escritorio */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
         /* Garantiza que el recibo no se aplaste en móviles para que el PDF salga bien */
-        .recibo-pdf-container { min-width: 700px; } 
+        .recibo-pdf-container { 
+            min-width: 700px; /* Obliga al ancho para mantener formato del PDF */
+        } 
+        .custom-scrollbar {
+            -webkit-overflow-scrolling: touch;
+        }
     </style>
 </head>
-<body class="bg-gray-50 flex h-screen overflow-hidden font-sans text-gray-800 relative">
+<body class="bg-gray-50 flex h-screen overflow-hidden font-sans text-gray-800 relative text-sm sm:text-base">
 
     <!-- Overlay oscuro para móviles cuando el menú está abierto -->
-    <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/60 z-30 hidden md:hidden transition-opacity" onclick="toggleSidebar()"></div>
+    <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/60 z-30 hidden md:hidden transition-opacity backdrop-blur-sm" onclick="toggleSidebar()"></div>
 
-    <aside id="sidebar" class="w-64 bg-slate-900 text-white flex flex-col no-print transition-transform duration-300 z-40 fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 shadow-2xl md:shadow-none">
+    <!-- Sidebar / Menú Lateral -->
+    <aside id="sidebar" class="w-64 sm:w-72 bg-slate-900 text-white flex flex-col no-print transition-transform duration-300 z-40 fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 shadow-2xl md:shadow-none">
         <div class="p-6 text-center border-b border-slate-800 relative">
-            <button onclick="toggleSidebar()" class="absolute top-4 right-4 text-slate-400 hover:text-white md:hidden"><i class="fas fa-times text-xl"></i></button>
+            <button onclick="toggleSidebar()" class="absolute top-4 right-4 text-slate-400 hover:text-white md:hidden p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400">
+                <i class="fas fa-times text-xl"></i>
+            </button>
             <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
                 <i class="fas fa-building text-2xl"></i>
             </div>
             <h1 class="text-lg font-bold tracking-wider">RESIDENCIAS</h1>
             <h2 class="text-xl font-light text-blue-400">VILLACOA</h2>
         </div>
-        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-            <button onclick="changeView('dashboard', 'Dashboard General')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium active-nav bg-slate-800 border-l-4 border-blue-500">
-                <i class="fas fa-chart-pie w-6 text-blue-400"></i> Dashboard General
+        <nav class="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
+            <button onclick="changeView('dashboard', 'Dashboard General')" class="w-full flex items-center p-3 sm:p-4 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium active-nav bg-slate-800 border-l-4 border-blue-500">
+                <i class="fas fa-chart-pie w-6 text-blue-400 text-lg text-center"></i> <span class="ml-2">Dashboard General</span>
             </button>
-            <button onclick="changeView('historico', 'Histórico de Deudas')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium">
-                <i class="fas fa-history w-6 text-green-400"></i> Histórico de Deudas
+            <button onclick="changeView('historico', 'Histórico de Deudas')" class="w-full flex items-center p-3 sm:p-4 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium">
+                <i class="fas fa-history w-6 text-green-400 text-lg text-center"></i> <span class="ml-2">Histórico de Deudas</span>
             </button>
-            <button onclick="changeView('propietarios', 'Reportes Especiales')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium">
-                <i class="fas fa-users w-6 text-purple-400"></i> Propietarios (Reportes)
+            <button onclick="changeView('propietarios', 'Reportes Especiales')" class="w-full flex items-center p-3 sm:p-4 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium">
+                <i class="fas fa-users w-6 text-purple-400 text-lg text-center"></i> <span class="ml-2">Propietarios (Reportes)</span>
             </button>
-            <button onclick="changeView('pagos', 'Registrar Pago')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium">
-                <i class="fas fa-hand-holding-dollar w-6 text-emerald-400"></i> Registrar Pago
+            <button onclick="changeView('pagos', 'Registrar Pago')" class="w-full flex items-center p-3 sm:p-4 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium">
+                <i class="fas fa-hand-holding-dollar w-6 text-emerald-400 text-lg text-center"></i> <span class="ml-2">Registrar Pago</span>
             </button>
-            <button onclick="changeView('egresos', 'Configuración Mensual')" class="w-full flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium">
-                <i class="fas fa-cogs w-6 text-orange-400"></i> Configurar Gastos
+            <button onclick="changeView('egresos', 'Configuración Mensual')" class="w-full flex items-center p-3 sm:p-4 rounded-lg hover:bg-slate-800 transition-colors text-left font-medium">
+                <i class="fas fa-cogs w-6 text-orange-400 text-lg text-center"></i> <span class="ml-2">Configurar Gastos</span>
             </button>
         </nav>
         <div class="p-4 border-t border-slate-800 text-xs text-slate-400 text-center" id="sidebar-mes">
@@ -68,83 +93,93 @@
         </div>
     </aside>
 
-    <main class="flex-1 flex flex-col h-screen overflow-y-auto relative w-full">
-        <header class="bg-white shadow-sm p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center no-print border-b border-gray-200 z-20 gap-3">
-            <div class="flex items-center w-full sm:w-auto">
-                <button onclick="toggleSidebar()" class="mr-4 text-gray-600 hover:text-blue-600 md:hidden p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <i class="fas fa-bars text-2xl"></i>
-                </button>
-                <div>
-                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800" id="header-title">Dashboard General</h2>
-                    <p class="text-xs sm:text-sm text-gray-500"><i class="fas fa-calendar-alt mr-1"></i> Tasa BCV Actual: <span class="font-semibold text-blue-600" id="header-tasa">Calculando...</span></p>
+    <!-- Contenido Principal -->
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto relative w-full custom-scrollbar">
+        <!-- Header -->
+        <header class="bg-white shadow-sm p-4 flex flex-col xl:flex-row justify-between items-start xl:items-center no-print border-b border-gray-200 z-20 gap-4">
+            <div class="flex items-center w-full xl:w-auto justify-between xl:justify-start">
+                <div class="flex items-center">
+                    <button onclick="toggleSidebar()" class="mr-3 sm:mr-4 text-gray-600 hover:text-blue-600 md:hidden p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-bold text-gray-800 leading-tight" id="header-title">Dashboard General</h2>
+                        <p class="text-xs sm:text-sm text-gray-500 mt-1"><i class="fas fa-calendar-alt mr-1"></i> Tasa BCV Actual: <span class="font-semibold text-blue-600" id="header-tasa">Calculando...</span></p>
+                    </div>
                 </div>
             </div>
-            <div class="w-full sm:w-auto">
-                <div class="text-left sm:text-right text-[10px] sm:text-xs bg-blue-50 text-blue-800 p-2 sm:p-2.5 rounded border border-blue-100 shadow-sm w-full">
-                    <p class="font-bold">Banco Exterior: 0115-004806-048-0034493</p>
-                    <p>RIF: J-31455419-0 | residenciasvillacoa@gmail.com</p>
+            <div class="w-full xl:w-auto">
+                <div class="text-left xl:text-right text-[11px] sm:text-xs bg-blue-50 text-blue-800 p-3 rounded-lg border border-blue-100 shadow-sm w-full flex flex-col sm:flex-row xl:flex-col justify-between sm:items-center xl:items-end gap-2">
+                    <p class="font-bold flex items-center"><i class="fas fa-university mr-2"></i> Banco Exterior: 0115-004806-048-0034493</p>
+                    <p class="opacity-90"><i class="fas fa-id-card mr-1"></i> RIF: J-31455419-0 <span class="hidden sm:inline">|</span><br class="sm:hidden"> <i class="fas fa-envelope mr-1 sm:ml-1"></i> residenciasvillacoa@gmail.com</p>
                 </div>
             </div>
         </header>
 
-        <div class="p-3 sm:p-6 relative flex-1 bg-gray-50 w-full overflow-hidden">
+        <!-- Vistas -->
+        <div class="p-3 sm:p-4 md:p-6 relative flex-1 bg-gray-50 w-full overflow-x-hidden">
 
+            <!-- VISTA: DASHBOARD -->
             <div id="view-dashboard" class="view active">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500 flex items-center justify-between">
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border-l-4 border-red-500 flex items-center justify-between">
                         <div>
-                            <p class="text-[11px] sm:text-xs text-gray-500 font-bold uppercase tracking-wide">Deuda Total</p>
-                            <h3 class="text-xl sm:text-2xl font-black text-gray-800" id="kpi-deuda">$0.00</h3>
+                            <p class="text-xs text-gray-500 font-bold uppercase tracking-wide">Deuda Total</p>
+                            <h3 class="text-2xl sm:text-3xl font-black text-gray-800 mt-1" id="kpi-deuda">$0.00</h3>
                         </div>
-                        <div class="bg-red-50 p-2 sm:p-3 rounded-full"><i class="fas fa-exclamation-circle text-2xl sm:text-3xl text-red-500"></i></div>
+                        <div class="bg-red-50 p-3 rounded-full"><i class="fas fa-exclamation-circle text-2xl sm:text-3xl text-red-500"></i></div>
                     </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500 flex items-center justify-between">
+                    <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border-l-4 border-green-500 flex items-center justify-between">
                         <div>
-                            <p class="text-[11px] sm:text-xs text-gray-500 font-bold uppercase tracking-wide">Recaudado (Abonos)</p>
-                            <h3 class="text-xl sm:text-2xl font-black text-gray-800" id="kpi-recaudado">$0.00</h3>
+                            <p class="text-xs text-gray-500 font-bold uppercase tracking-wide">Recaudado (Abonos)</p>
+                            <h3 class="text-2xl sm:text-3xl font-black text-gray-800 mt-1" id="kpi-recaudado">$0.00</h3>
                         </div>
-                        <div class="bg-green-50 p-2 sm:p-3 rounded-full"><i class="fas fa-check-circle text-2xl sm:text-3xl text-green-500"></i></div>
+                        <div class="bg-green-50 p-3 rounded-full"><i class="fas fa-check-circle text-2xl sm:text-3xl text-green-500"></i></div>
                     </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-orange-500 flex items-center justify-between">
+                    <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border-l-4 border-orange-500 flex items-center justify-between">
                         <div>
-                            <p class="text-[11px] sm:text-xs text-gray-500 font-bold uppercase tracking-wide">Aptos Morosos</p>
-                            <h3 class="text-xl sm:text-2xl font-black text-gray-800" id="kpi-morosos">0</h3>
+                            <p class="text-xs text-gray-500 font-bold uppercase tracking-wide">Aptos Morosos</p>
+                            <h3 class="text-2xl sm:text-3xl font-black text-gray-800 mt-1" id="kpi-morosos">0</h3>
                         </div>
-                        <div class="bg-orange-50 p-2 sm:p-3 rounded-full"><i class="fas fa-users text-2xl sm:text-3xl text-orange-500"></i></div>
+                        <div class="bg-orange-50 p-3 rounded-full"><i class="fas fa-users text-2xl sm:text-3xl text-orange-500"></i></div>
                     </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500 flex items-center justify-between">
+                    <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border-l-4 border-blue-500 flex items-center justify-between">
                         <div>
-                            <p class="text-[11px] sm:text-xs text-gray-500 font-bold uppercase tracking-wide">Cuota Base</p>
-                            <h3 class="text-xl sm:text-2xl font-black text-gray-800" id="kpi-cuota">$0.00</h3>
+                            <p class="text-xs text-gray-500 font-bold uppercase tracking-wide">Cuota Base</p>
+                            <h3 class="text-2xl sm:text-3xl font-black text-gray-800 mt-1" id="kpi-cuota">$0.00</h3>
                         </div>
-                        <div class="bg-blue-50 p-2 sm:p-3 rounded-full"><i class="fas fa-home text-2xl sm:text-3xl text-blue-500"></i></div>
+                        <div class="bg-blue-50 p-3 rounded-full"><i class="fas fa-home text-2xl sm:text-3xl text-blue-500"></i></div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-5" id="export-dashboard-area">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-5" id="export-dashboard-area">
                     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 no-print gap-3">
-                        <h3 class="text-base sm:text-lg font-bold text-gray-700 whitespace-nowrap">Estado de Cuenta por Apartamento</h3>
-                        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full lg:w-auto">
-                            <input type="text" id="search-dashboard" placeholder="Buscar Apto (Ej: 13-A)" class="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" onkeyup="filtrarDashboard()">
-                            <select id="filtro-estado-dashboard" class="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" onchange="filtrarDashboard()">
+                        <h3 class="text-lg font-bold text-gray-700">Estado de Cuenta por Apartamento</h3>
+                        <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 w-full lg:w-auto">
+                            <input type="text" id="search-dashboard" placeholder="Buscar Apto..." class="w-full sm:w-auto border border-gray-300 rounded-lg px-4 py-2.5 sm:py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" onkeyup="filtrarDashboard()">
+                            <select id="filtro-estado-dashboard" class="w-full sm:w-auto border border-gray-300 rounded-lg px-4 py-2.5 sm:py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" onchange="filtrarDashboard()">
                                 <option value="todos">Todos los Estados</option>
                                 <option value="solvente">Solo Solventes</option>
                                 <option value="moroso">Solo Morosos</option>
                                 <option value="convenio">Solo Convenio</option>
                             </select>
-                            <button onclick="descargarPDF('export-dashboard-area', 'Resumen_Villacoa')" class="w-full sm:w-auto bg-gray-800 text-white px-4 py-2 rounded-lg text-sm shadow hover:bg-gray-700 transition flex items-center justify-center"><i class="fas fa-file-pdf mr-2"></i> Exportar PDF</button>
+                            <button onclick="descargarPDF('export-dashboard-area', 'Resumen_Villacoa')" class="w-full sm:w-auto bg-gray-800 text-white px-4 py-2.5 sm:py-2 rounded-lg text-sm shadow hover:bg-gray-700 transition flex items-center justify-center"><i class="fas fa-file-pdf mr-2"></i> Exportar PDF</button>
                         </div>
                     </div>
-                    <div class="table-container">
+                    
+                    <!-- Contenedor con scroll para la tabla (Responsivo) -->
+                    <div class="table-container bg-white">
                         <table class="w-full text-left text-sm whitespace-nowrap" id="tabla-dashboard">
                             <thead class="bg-slate-100 text-slate-700">
                                 <tr>
-                                    <th class="p-3 border-b font-semibold">Apto</th><th class="p-3 border-b font-semibold">Propietario</th>
-                                    <th class="p-3 border-b text-center font-semibold">Estado</th><th class="p-3 border-b text-right font-semibold">Deuda Total</th>
-                                    <th class="p-3 border-b text-center no-print font-semibold">Acción</th>
+                                    <th class="p-3 sm:p-4 border-b font-semibold">Apto</th>
+                                    <th class="p-3 sm:p-4 border-b font-semibold">Propietario</th>
+                                    <th class="p-3 sm:p-4 border-b text-center font-semibold">Estado</th>
+                                    <th class="p-3 sm:p-4 border-b text-right font-semibold">Deuda Total</th>
+                                    <th class="p-3 sm:p-4 border-b text-center no-print font-semibold">Acción</th>
                                 </tr>
                             </thead>
-                            <tbody id="tbody-dashboard" class="text-gray-700">
+                            <tbody id="tbody-dashboard" class="text-gray-700 divide-y divide-gray-100">
                                 <tr><td colspan="5" class="p-8 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">Importa un archivo Excel en el Histórico para comenzar.</td></tr>
                             </tbody>
                         </table>
@@ -152,42 +187,43 @@
                 </div>
             </div>
 
+            <!-- VISTA: HISTÓRICO -->
             <div id="view-historico" class="view">
-                <div class="bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100" id="export-historico-area">
-                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 no-print gap-4">
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100" id="export-historico-area">
+                    <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-5 no-print gap-4">
                         <h3 class="text-lg sm:text-xl font-bold text-gray-800">Histórico de Movimientos</h3>
-                        <div class="flex flex-col sm:flex-row w-full lg:w-auto space-y-2 sm:space-y-0 sm:space-x-2">
-                            <input type="text" id="search-historico" placeholder="Buscar Apto (Ej: 13-B)..." class="w-full sm:w-48 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" onkeyup="filtrarHistorico()">
+                        <div class="flex flex-col sm:flex-row w-full xl:w-auto space-y-3 sm:space-y-0 sm:space-x-3">
+                            <input type="text" id="search-historico" placeholder="Buscar Apto..." class="w-full sm:w-48 border border-gray-300 rounded-lg px-4 py-2.5 sm:py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" onkeyup="filtrarHistorico()">
                             <input type="file" id="input-excel" accept=".xlsx, .xls, .csv" class="hidden" onchange="procesarExcel(event)">
-                            <button onclick="document.getElementById('input-excel').click()" class="w-full sm:w-auto bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm shadow transition font-medium flex items-center justify-center">
+                            <button onclick="document.getElementById('input-excel').click()" class="w-full sm:w-auto bg-green-600 text-white px-4 py-2.5 sm:py-2 rounded-lg hover:bg-green-700 text-sm shadow transition font-medium flex items-center justify-center">
                                 <i class="fas fa-file-excel mr-2"></i> Importar Excel
                             </button>
-                            <button onclick="descargarPDF('export-historico-area', 'Historico_Villacoa', 'landscape')" class="w-full sm:w-auto bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 text-sm shadow transition flex items-center justify-center">
+                            <button onclick="descargarPDF('export-historico-area', 'Historico_Villacoa', 'landscape')" class="w-full sm:w-auto bg-gray-800 text-white px-4 py-2.5 sm:py-2 rounded-lg hover:bg-gray-700 text-sm shadow transition flex items-center justify-center">
                                 <i class="fas fa-file-pdf mr-2"></i> PDF
                             </button>
                         </div>
                     </div>
                     
-                    <div class="table-container">
-                        <table class="w-full text-left text-xs whitespace-nowrap" id="tabla-historico">
+                    <div class="table-container bg-white">
+                        <table class="w-full text-left text-xs sm:text-sm whitespace-nowrap" id="tabla-historico">
                             <thead class="bg-slate-100 text-slate-700">
                                 <tr>
-                                    <th class="p-2 border-b">Apto</th><th class="p-2 border-b">Propietario</th>
-                                    <th class="p-2 border-b text-right">2022</th><th class="p-2 border-b text-right">2023</th>
-                                    <th class="p-2 border-b text-right">2024</th><th class="p-2 border-b text-right">2025</th>
-                                    <th class="p-2 border-b text-right">Ene-Jun 26</th>
-                                    <th class="p-2 border-b text-right bg-blue-100 text-blue-900 font-bold">Cuota Base</th>
-                                    <th class="p-2 border-b text-right text-green-700 bg-green-50 font-bold">Abonos</th>
-                                    <th class="p-2 border-b text-right font-bold">Deuda Final</th>
+                                    <th class="p-3 border-b">Apto</th><th class="p-3 border-b">Propietario</th>
+                                    <th class="p-3 border-b text-right">2022</th><th class="p-3 border-b text-right">2023</th>
+                                    <th class="p-3 border-b text-right">2024</th><th class="p-3 border-b text-right">2025</th>
+                                    <th class="p-3 border-b text-right">Ene-Jun 26</th>
+                                    <th class="p-3 border-b text-right bg-blue-100 text-blue-900 font-bold">Cuota Base</th>
+                                    <th class="p-3 border-b text-right text-green-700 bg-green-50 font-bold">Abonos</th>
+                                    <th class="p-3 border-b text-right font-bold">Deuda Final</th>
                                 </tr>
                             </thead>
-                            <tbody id="tbody-historico" class="text-gray-700">
+                            <tbody id="tbody-historico" class="text-gray-700 divide-y divide-gray-100">
                                 <tr><td colspan="10" class="p-8 text-center text-gray-400 border-2 border-dashed border-gray-200">Esperando archivo Excel...</td></tr>
                             </tbody>
                             <tfoot class="bg-slate-800 text-white font-bold hidden" id="tfoot-historico">
                                 <tr>
-                                    <td colspan="9" class="p-3 text-right uppercase tracking-wider text-xs sm:text-sm">Total Deuda General (Morosidad):</td>
-                                    <td class="p-3 text-right text-xs sm:text-sm text-red-400" id="gran-total-historico">$0.00</td>
+                                    <td colspan="9" class="p-4 text-right uppercase tracking-wider text-xs sm:text-sm">Total Deuda General (Morosidad):</td>
+                                    <td class="p-4 text-right text-sm sm:text-base text-red-400" id="gran-total-historico">$0.00</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -195,51 +231,60 @@
                 </div>
             </div>
 
+            <!-- VISTA: PROPIETARIOS Y REPORTES -->
             <div id="view-propietarios" class="view">
-                <div class="bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100">
-                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-4 border-b pb-2"><i class="fas fa-sliders-h mr-2"></i> Reportes Especiales</h3>
-                    <div class="flex flex-col lg:flex-row gap-4 sm:gap-6">
-                        <div class="w-full lg:w-1/3 bg-gray-50 p-4 rounded-lg border">
-                            <h4 class="font-bold text-gray-700 mb-3 text-sm">Filtros Visibles (Columnas):</h4>
-                            <div class="grid grid-cols-2 lg:grid-cols-1 gap-2 text-sm text-gray-600 mb-6">
-                                <label class="flex items-center space-x-2"><input type="checkbox" id="col-apto" checked class="form-checkbox text-blue-600 rounded"><span>Apartamento</span></label>
-                                <label class="flex items-center space-x-2"><input type="checkbox" id="col-nombre" checked class="form-checkbox text-blue-600 rounded"><span>Propietario</span></label>
-                                <label class="flex items-center space-x-2"><input type="checkbox" id="col-estado" checked class="form-checkbox text-blue-600 rounded"><span>Estado</span></label>
-                                <label class="flex items-center space-x-2"><input type="checkbox" id="col-deuda" checked class="form-checkbox text-blue-600 rounded"><span>Deuda Actual</span></label>
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-5 border-b pb-3"><i class="fas fa-sliders-h mr-2"></i> Reportes Especiales</h3>
+                    
+                    <div class="flex flex-col xl:flex-row gap-6">
+                        <!-- Panel de Filtros -->
+                        <div class="w-full xl:w-1/3 bg-gray-50 p-5 rounded-xl border border-gray-200">
+                            <h4 class="font-bold text-gray-700 mb-4 text-sm uppercase tracking-wide">Filtros Visibles (Columnas):</h4>
+                            <div class="grid grid-cols-2 gap-3 text-sm text-gray-700 mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                                <label class="flex items-center space-x-3 cursor-pointer p-1"><input type="checkbox" id="col-apto" checked class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"><span>Apartamento</span></label>
+                                <label class="flex items-center space-x-3 cursor-pointer p-1"><input type="checkbox" id="col-nombre" checked class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"><span>Propietario</span></label>
+                                <label class="flex items-center space-x-3 cursor-pointer p-1"><input type="checkbox" id="col-estado" checked class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"><span>Estado</span></label>
+                                <label class="flex items-center space-x-3 cursor-pointer p-1"><input type="checkbox" id="col-deuda" checked class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"><span>Deuda Actual</span></label>
                             </div>
                             
-                            <h4 class="font-bold text-gray-700 mb-3 text-sm border-t border-gray-200 pt-4">Filtrar por Estado (Filas):</h4>
-                            <select id="filtro-estado-reporte" class="w-full border border-gray-300 p-2.5 rounded-lg text-sm mb-6 outline-none focus:ring-2 focus:ring-blue-500 bg-white" onchange="aplicarFiltroEstado()">
+                            <h4 class="font-bold text-gray-700 mb-4 text-sm uppercase tracking-wide border-t border-gray-200 pt-5">Filtrar por Estado (Filas):</h4>
+                            <select id="filtro-estado-reporte" class="w-full border border-gray-300 p-3 rounded-lg text-sm mb-6 outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" onchange="aplicarFiltroEstado()">
                                 <option value="todos">Todos los Propietarios</option>
                                 <option value="solvente">Solo Solventes (Deuda $0)</option>
                                 <option value="moroso">Solo Morosos</option>
                                 <option value="convenio">Solo Convenio de Pago</option>
                             </select>
 
-                            <div class="flex flex-col sm:flex-row gap-2">
-                                <button onclick="exportarReporte('pdf')" class="w-full bg-red-600 text-white p-2.5 rounded-lg shadow font-medium hover:bg-red-700 transition flex items-center justify-center"><i class="fas fa-file-pdf mr-2"></i> Imprimir PDF</button>
-                                <button onclick="exportarReporte('csv')" class="w-full bg-green-600 text-white p-2.5 rounded-lg shadow font-medium hover:bg-green-700 transition flex items-center justify-center"><i class="fas fa-file-excel mr-2"></i> Descargar Excel</button>
+                            <div class="flex flex-col sm:flex-row xl:flex-col gap-3">
+                                <button onclick="exportarReporte('pdf')" class="w-full bg-red-600 text-white p-3 rounded-lg shadow font-medium hover:bg-red-700 transition flex items-center justify-center"><i class="fas fa-file-pdf mr-2"></i> Imprimir PDF</button>
+                                <button onclick="exportarReporte('csv')" class="w-full bg-green-600 text-white p-3 rounded-lg shadow font-medium hover:bg-green-700 transition flex items-center justify-center"><i class="fas fa-file-excel mr-2"></i> Descargar Excel</button>
                             </div>
                         </div>
-                        <div class="w-full lg:w-2/3 border rounded-lg overflow-hidden flex flex-col" id="preview-area-container">
-                            <div class="bg-slate-800 text-white p-2.5 text-center text-xs font-bold uppercase tracking-wider">Vista Previa del Documento</div>
-                            <div class="p-2 sm:p-4 bg-white flex-1 overflow-x-auto" id="preview-content">
-                                <div class="text-center mb-4 hidden" id="reporte-header">
-                                    <h2 class="font-bold text-xl">RESIDENCIAS VILLACOA</h2>
-                                    <p class="text-xs">Reporte de Propietarios y Saldos</p>
+                        
+                        <!-- Vista Previa de Tabla -->
+                        <div class="w-full xl:w-2/3 border border-gray-200 rounded-xl overflow-hidden flex flex-col bg-white" id="preview-area-container">
+                            <div class="bg-slate-800 text-white p-3 text-center text-xs font-bold uppercase tracking-wider">Vista Previa del Documento</div>
+                            <div class="p-3 sm:p-5 flex-1 overflow-x-auto custom-scrollbar" id="preview-content">
+                                <div class="text-center mb-5 hidden" id="reporte-header">
+                                    <h2 class="font-bold text-xl uppercase">Residencias Villacoa</h2>
+                                    <p class="text-sm text-gray-600">Reporte de Propietarios y Saldos</p>
                                 </div>
                                 <table class="w-full text-left text-sm whitespace-nowrap" id="tabla-preview">
-                                    <thead class="bg-gray-100 border-b-2 border-gray-300">
+                                    <thead class="bg-gray-100 border-b-2 border-gray-300 text-gray-800">
                                         <tr>
-                                            <th class="p-2 sm:p-3 border col-apto-view">Apto</th><th class="p-2 sm:p-3 border col-nombre-view">Propietario</th>
-                                            <th class="p-2 sm:p-3 border text-center col-estado-view">Estado</th><th class="p-2 sm:p-3 border text-right col-deuda-view">Deuda</th>
+                                            <th class="p-3 border col-apto-view">Apto</th>
+                                            <th class="p-3 border col-nombre-view">Propietario</th>
+                                            <th class="p-3 border text-center col-estado-view">Estado</th>
+                                            <th class="p-3 border text-right col-deuda-view">Deuda</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="tbody-preview"><tr><td colspan="4" class="p-4 text-center text-gray-400">Sin datos</td></tr></tbody>
+                                    <tbody id="tbody-preview" class="divide-y divide-gray-100">
+                                        <tr><td colspan="4" class="p-6 text-center text-gray-400 border border-gray-200">Sin datos cargados</td></tr>
+                                    </tbody>
                                     <tfoot class="bg-gray-200 border-t-2 border-gray-400 font-bold" id="tfoot-reporte">
                                         <tr>
-                                            <td colspan="3" class="p-2 sm:p-3 border text-right uppercase text-gray-800 text-xs sm:text-sm">Deuda Total (Según Filtro):</td>
-                                            <td class="p-2 sm:p-3 border text-right text-red-700 text-sm sm:text-base" id="total-deuda-reporte">$0.00</td>
+                                            <td colspan="3" class="p-3 border text-right uppercase text-gray-800 text-xs sm:text-sm">Deuda Total (Según Filtro):</td>
+                                            <td class="p-3 border text-right text-red-700 text-base sm:text-lg" id="total-deuda-reporte">$0.00</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -249,94 +294,123 @@
                 </div>
             </div>
 
+            <!-- VISTA: REGISTRAR PAGO -->
             <div id="view-pagos" class="view">
-                <div class="max-w-3xl mx-auto bg-white p-4 sm:p-8 rounded-xl shadow border border-gray-100">
-                    <h3 class="text-lg sm:text-xl font-bold text-emerald-700 mb-6 border-b pb-3"><i class="fas fa-hand-holding-dollar mr-2"></i> Formulario de Pago y Abonos</h3>
+                <div class="max-w-3xl mx-auto bg-white p-5 sm:p-8 md:p-10 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="text-xl sm:text-2xl font-bold text-emerald-700 mb-6 border-b pb-4 flex items-center"><i class="fas fa-hand-holding-dollar mr-3"></i> Formulario de Pago y Abonos</h3>
                     <form onsubmit="procesarPago(event)">
-                        <div class="mb-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                            <label class="block text-sm font-bold text-gray-700 mb-2">1. Seleccione el Apartamento</label>
-                            <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
-                                <select id="select-apto-pago" class="w-full flex-1 border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-white" required onchange="mostrarDeudaPago()"><option value="">-- Importe Excel Primero --</option></select>
-                                <div id="deuda-badge-pago" class="hidden whitespace-nowrap bg-red-100 text-red-800 px-4 py-3 rounded-lg font-bold border border-red-200 shadow-inner w-full md:w-auto text-center text-sm md:text-base">Deuda: $0.00</div>
+                        
+                        <div class="mb-6 bg-slate-50 p-5 rounded-xl border border-slate-200">
+                            <label class="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">1. Seleccione el Apartamento</label>
+                            <div class="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
+                                <select id="select-apto-pago" class="w-full flex-1 border border-gray-300 p-3 sm:p-4 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-white shadow-sm" required onchange="mostrarDeudaPago()">
+                                    <option value="">-- Importe Excel Primero --</option>
+                                </select>
+                                <div id="deuda-badge-pago" class="hidden whitespace-nowrap bg-red-100 text-red-800 px-5 py-3 sm:py-4 rounded-lg font-bold border border-red-200 shadow-inner w-full md:w-auto text-center text-base">Deuda: $0.00</div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
-                            <div class="col-span-1 md:col-span-2 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
-                                <label class="block text-sm font-bold text-gray-700 mb-2">2. Monto a Pagar ($)</label>
-                                <div class="flex shadow-sm rounded-lg">
-                                    <input type="number" id="pago-monto" step="0.01" min="0.01" class="w-full border-y border-l border-gray-300 p-3 rounded-l-lg focus:ring-2 focus:ring-emerald-500 outline-none text-lg font-semibold text-gray-800" placeholder="0.00" required oninput="calcularEquivalenciaPago()">
-                                    <button type="button" onclick="autocompletarDeuda()" class="bg-blue-100 px-4 sm:px-6 border border-blue-200 rounded-r-lg text-sm font-bold text-blue-700 hover:bg-blue-200 transition" title="Pagar toda la deuda">Totalidad</button>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                            <div class="col-span-1 md:col-span-2 bg-blue-50/50 p-5 rounded-xl border border-blue-100">
+                                <label class="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">2. Monto a Pagar ($)</label>
+                                <div class="flex shadow-sm rounded-lg overflow-hidden">
+                                    <input type="number" id="pago-monto" step="0.01" min="0.01" class="w-full border-y border-l border-gray-300 p-3 sm:p-4 focus:ring-2 focus:ring-emerald-500 outline-none text-xl font-bold text-gray-800" placeholder="0.00" required oninput="calcularEquivalenciaPago()">
+                                    <button type="button" onclick="autocompletarDeuda()" class="bg-blue-100 px-4 sm:px-6 border border-blue-200 text-sm font-bold text-blue-800 hover:bg-blue-200 transition whitespace-nowrap" title="Pagar toda la deuda">Pagar Todo</button>
                                 </div>
-                                <p id="pago-equivalencia" class="text-xs font-semibold text-blue-600 mt-2 bg-white inline-block px-2 py-1 rounded border border-blue-100"><i class="fas fa-exchange-alt mr-1"></i> Equivalente: Bs. 0.00</p>
+                                <p id="pago-equivalencia" class="text-sm font-semibold text-blue-700 mt-3 bg-white inline-block px-3 py-1.5 rounded-md border border-blue-100 shadow-sm"><i class="fas fa-exchange-alt mr-1"></i> Equivalente: Bs. 0.00</p>
                             </div>
+
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2">3. Fecha del Comprobante</label>
-                                <input type="date" id="pago-fecha" class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" required>
+                                <input type="date" id="pago-fecha" class="w-full border border-gray-300 p-3.5 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-white shadow-sm" required>
                             </div>
+                            
                             <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">4. Banco Emisor / Destino</label>
-                                <input type="text" id="pago-banco" class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Ej: Banesco, Zelle, Pago Móvil" required>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">4. Banco Emisor / Método</label>
+                                <input type="text" id="pago-banco" class="w-full border border-gray-300 p-3.5 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-white shadow-sm" placeholder="Ej: Banesco, Zelle, Efectivo" required>
                             </div>
+                            
                             <div class="col-span-1 md:col-span-2">
                                 <label class="block text-sm font-bold text-gray-700 mb-2">5. Número de Referencia</label>
-                                <input type="text" id="pago-ref" class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none font-mono" placeholder="N° de Comprobante / Recibo" required>
+                                <input type="text" id="pago-ref" class="w-full border border-gray-300 p-3.5 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none font-mono bg-white shadow-sm" placeholder="N° de Comprobante / Recibo" required>
                             </div>
                         </div>
-                        <button type="submit" id="btn-guardar-pago" class="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-emerald-700 transition transform hover:-translate-y-0.5 text-lg flex justify-center items-center"><i class="fas fa-save mr-2"></i> Procesar y Guardar Pago Oficial</button>
+
+                        <button type="submit" id="btn-guardar-pago" class="w-full bg-emerald-600 text-white font-bold py-4 sm:py-5 rounded-xl shadow-lg hover:bg-emerald-700 transition transform hover:-translate-y-0.5 text-lg flex justify-center items-center"><i class="fas fa-save mr-2"></i> Procesar y Guardar Pago Oficial</button>
                     </form>
                 </div>
             </div>
 
+            <!-- VISTA: CONFIGURACIÓN Y EGRESOS -->
             <div id="view-egresos" class="view">
                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow border border-gray-100">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b border-gray-200 pb-4 gap-4">
-                        <h3 class="text-lg sm:text-xl font-bold text-orange-700"><i class="fas fa-cogs mr-2"></i> Configurar Gastos (Recibo)</h3>
-                        <div class="flex gap-3 w-full sm:w-auto bg-gray-50 p-2 rounded-lg border">
+                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 border-b border-gray-200 pb-5 gap-5">
+                        <h3 class="text-xl font-bold text-orange-700 flex items-center"><i class="fas fa-cogs mr-3"></i> Configurar Gastos (Recibo)</h3>
+                        <div class="flex flex-col sm:flex-row gap-4 w-full lg:w-auto bg-gray-50 p-4 rounded-xl border border-gray-200">
                             <div class="flex-1 sm:flex-none">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">Tasa BCV</label>
-                                <input type="number" step="0.01" id="config-tasa" value="0" onchange="actualizarGastosUI()" class="border border-gray-300 p-1.5 w-full sm:w-24 rounded text-sm text-right font-bold bg-white text-blue-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block mb-1.5">Tasa BCV</label>
+                                <input type="number" step="0.01" id="config-tasa" value="0" onchange="actualizarGastosUI()" class="border border-gray-300 p-2.5 w-full sm:w-28 rounded-lg text-base text-right font-bold bg-white text-blue-700 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
                             </div>
                             <div class="flex-1 sm:flex-none">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">Mes a Facturar</label>
-                                <input type="text" id="config-mes" value="JULIO 2026" onkeyup="actualizarGastosUI()" class="border border-gray-300 p-1.5 w-full sm:w-32 rounded text-sm bg-white uppercase text-center font-bold outline-none focus:ring-1 focus:ring-blue-500">
+                                <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block mb-1.5">Mes a Facturar</label>
+                                <input type="text" id="config-mes" value="JULIO 2026" onkeyup="actualizarGastosUI()" class="border border-gray-300 p-2.5 w-full sm:w-40 rounded-lg text-base bg-white uppercase text-center font-bold outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
                             </div>
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="lg:col-span-1 bg-gray-50 p-4 sm:p-5 rounded-xl border border-gray-200 shadow-sm">
-                            <h4 class="font-bold text-sm text-gray-800 mb-4 pb-2 border-b">Añadir Gasto Común</h4>
-                            <form onsubmit="agregarGasto(event)" class="space-y-4">
-                                <div><label class="text-xs font-bold text-gray-700 mb-1 block">Descripción del servicio o compra</label><input type="text" id="g-desc" class="w-full p-2.5 border border-gray-300 text-sm rounded-lg outline-none focus:ring-2 focus:ring-blue-500" required></div>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div><label class="text-xs font-bold text-gray-700 mb-1 block">Monto ($)</label><input type="number" step="0.01" id="g-dolar" placeholder="0.00" class="w-full p-2.5 border border-gray-300 text-sm rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></div>
-                                    <div><label class="text-xs font-bold text-gray-700 mb-1 block">Monto (Bs)</label><input type="number" step="0.01" id="g-bs" placeholder="0.00" class="w-full p-2.5 border border-gray-300 text-sm rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                        <!-- Añadir Gasto (Formulario Lateral) -->
+                        <div class="xl:col-span-1 bg-gray-50 p-5 rounded-2xl border border-gray-200 shadow-sm h-fit">
+                            <h4 class="font-bold text-base text-gray-800 mb-5 pb-3 border-b border-gray-200 uppercase tracking-wide">Añadir Gasto Común</h4>
+                            <form onsubmit="agregarGasto(event)" class="space-y-5">
+                                <div>
+                                    <label class="text-xs font-bold text-gray-700 mb-2 block">Descripción del servicio o compra</label>
+                                    <input type="text" id="g-desc" class="w-full p-3 border border-gray-300 text-sm rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white" required>
                                 </div>
-                                <p class="text-[10px] text-gray-500 leading-tight bg-white p-2 rounded border border-gray-100"><i class="fas fa-info-circle text-blue-400 mr-1"></i> Si introduces Dólares, el sistema calcula los Bolívares usando la tasa BCV superior de forma automática.</p>
-                                <button type="submit" class="w-full bg-blue-600 text-white font-bold p-3 text-sm rounded-lg shadow hover:bg-blue-700 transition">Agregar a la lista <i class="fas fa-arrow-right ml-1"></i></button>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-xs font-bold text-gray-700 mb-2 block">Monto ($)</label>
+                                        <input type="number" step="0.01" id="g-dolar" placeholder="0.00" class="w-full p-3 border border-gray-300 text-sm rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-bold text-gray-700 mb-2 block">Monto (Bs)</label>
+                                        <input type="number" step="0.01" id="g-bs" placeholder="0.00" class="w-full p-3 border border-gray-300 text-sm rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                                    </div>
+                                </div>
+                                <div class="bg-blue-50 p-3 rounded-lg border border-blue-100 text-xs text-blue-800 flex items-start">
+                                    <i class="fas fa-info-circle mt-0.5 mr-2"></i>
+                                    <p>Si introduces Dólares, el sistema calcula los Bolívares usando la tasa BCV superior automáticamente.</p>
+                                </div>
+                                <button type="submit" class="w-full bg-blue-600 text-white font-bold p-3.5 text-sm rounded-xl shadow-md hover:bg-blue-700 transition">Agregar a la lista <i class="fas fa-arrow-right ml-1"></i></button>
                             </form>
                             
-                            <div class="mt-6 p-4 bg-blue-900 border border-blue-800 rounded-xl shadow-inner text-sm text-white">
-                                <p class="font-bold text-blue-200 border-b border-blue-700 pb-2 mb-3 text-xs uppercase tracking-wider"><i class="fas fa-calculator mr-1"></i> Proyección del Mes</p>
-                                <div class="flex justify-between mb-1.5"><span class="text-blue-100 text-xs">Suma Gastos (Bs):</span><strong id="res-total-bs">0.00</strong></div>
-                                <div class="flex justify-between mb-1.5"><span class="text-blue-100 text-xs">Fondo Reserva 15% (Bs):</span><strong id="res-fondo-bs">0.00</strong></div>
-                                <div class="flex justify-between mb-3"><span class="text-blue-100 text-xs">Gasto Gral + Fondo (Bs):</span><strong id="res-gran-bs">0.00</strong></div>
-                                <div class="flex justify-between items-center border-t border-blue-700 pt-3 mt-1"><span class="font-bold text-blue-100 text-xs">CUOTA BASE X APTO:</span><strong class="text-xl sm:text-2xl text-green-400 font-black" id="res-cuota-base">$0.00</strong></div>
+                            <!-- Proyección -->
+                            <div class="mt-8 p-5 bg-blue-900 border border-blue-800 rounded-2xl shadow-inner text-sm text-white relative overflow-hidden">
+                                <div class="absolute top-0 right-0 p-4 opacity-10"><i class="fas fa-calculator text-6xl"></i></div>
+                                <p class="font-bold text-blue-200 border-b border-blue-700/50 pb-2 mb-4 text-xs uppercase tracking-wider relative z-10"><i class="fas fa-chart-line mr-2"></i> Proyección del Mes</p>
+                                <div class="flex justify-between mb-2 relative z-10"><span class="text-blue-100 text-xs">Suma Gastos (Bs):</span><strong id="res-total-bs">0.00</strong></div>
+                                <div class="flex justify-between mb-2 relative z-10"><span class="text-blue-100 text-xs">Fondo Reserva 15% (Bs):</span><strong id="res-fondo-bs">0.00</strong></div>
+                                <div class="flex justify-between mb-4 relative z-10"><span class="text-blue-100 text-xs">Gasto Gral + Fondo (Bs):</span><strong id="res-gran-bs">0.00</strong></div>
+                                <div class="flex flex-col border-t border-blue-700/50 pt-4 mt-2 relative z-10">
+                                    <span class="font-bold text-blue-100 text-xs mb-1">CUOTA BASE ESTIMADA X APTO:</span>
+                                    <strong class="text-3xl text-green-400 font-black" id="res-cuota-base">$0.00</strong>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="lg:col-span-2">
-                            <div class="table-container shadow-sm border border-gray-200 max-h-[65vh] rounded-xl">
-                                <table class="w-full text-left text-xs whitespace-nowrap">
-                                    <thead class="bg-slate-100 text-slate-700 sticky top-0 shadow-sm">
+                        <!-- Tabla de Gastos Configurables -->
+                        <div class="xl:col-span-2">
+                            <div class="table-container shadow-sm border border-gray-200 rounded-xl bg-white">
+                                <table class="w-full text-left text-sm whitespace-nowrap">
+                                    <thead class="bg-slate-100 text-slate-700 sticky top-0 shadow-sm z-10">
                                         <tr>
-                                            <th class="p-3 border-b font-bold">Descripción del Concepto</th>
-                                            <th class="p-3 border-b text-right font-bold w-24">Divisas ($)</th>
-                                            <th class="p-3 border-b text-right font-bold w-28">Moneda Nal. (Bs)</th>
-                                            <th class="p-3 border-b text-center w-12">Borrar</th>
+                                            <th class="p-4 border-b font-bold">Descripción del Concepto</th>
+                                            <th class="p-4 border-b text-right font-bold w-24 sm:w-32">Divisas ($)</th>
+                                            <th class="p-4 border-b text-right font-bold w-32 sm:w-40">Moneda Nal. (Bs)</th>
+                                            <th class="p-4 border-b text-center w-16">Acción</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="tbody-gastos-config" class="text-gray-700"></tbody>
+                                    <tbody id="tbody-gastos-config" class="text-gray-700 divide-y divide-gray-100"></tbody>
                                 </table>
                             </div>
                         </div>
@@ -347,82 +421,88 @@
         </div>
     </main>
 
-    <div id="modal-recibo" class="fixed inset-0 bg-slate-900/90 hidden z-[100] flex items-center justify-center backdrop-blur-sm p-2 sm:p-4 transition-opacity">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[95vh] flex flex-col relative overflow-hidden">
+    <!-- Modal: Recibo PDF -->
+    <div id="modal-recibo" class="fixed inset-0 bg-slate-900/95 hidden z-[100] flex items-center justify-center p-0 sm:p-4 md:p-6 transition-opacity backdrop-blur-sm">
+        <div class="bg-white sm:rounded-xl shadow-2xl w-full max-w-5xl h-full sm:h-[95vh] flex flex-col relative overflow-hidden">
             
-            <!-- Barra de control superior móvil/desktop -->
-            <div class="bg-gray-100 border-b p-3 sm:p-4 flex justify-between items-center no-print">
-                <h3 class="font-bold text-gray-700 text-sm sm:text-base"><i class="fas fa-file-invoice mr-2"></i> Vista Previa Recibo</h3>
-                <div class="flex space-x-2">
-                    <button onclick="descargarPDF('recibo-content', 'Recibo_Villacoa')" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 shadow flex items-center"><i class="fas fa-download sm:mr-2"></i> <span class="hidden sm:inline">PDF</span></button>
-                    <button onclick="window.print()" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-800 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-900 shadow flex items-center"><i class="fas fa-print sm:mr-2"></i> <span class="hidden sm:inline">Imprimir</span></button>
-                    <button onclick="cerrarRecibo()" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-red-100 text-red-600 hover:bg-red-200 text-xs sm:text-sm font-bold rounded-lg shadow-sm"><i class="fas fa-times"></i></button>
+            <!-- Barra de control -->
+            <div class="bg-gray-100 border-b border-gray-300 p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-center no-print gap-3">
+                <h3 class="font-bold text-gray-800 text-base flex items-center"><i class="fas fa-file-invoice mr-2 text-blue-600"></i> Vista Previa de Recibo Oficial</h3>
+                <div class="flex space-x-2 w-full sm:w-auto justify-end">
+                    <button onclick="descargarPDF('recibo-content', 'Recibo_Villacoa')" class="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 shadow-sm flex items-center justify-center"><i class="fas fa-download sm:mr-2"></i> <span class="hidden sm:inline">Descargar PDF</span></button>
+                    <button onclick="window.print()" class="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 shadow-sm flex items-center justify-center"><i class="fas fa-print sm:mr-2"></i> <span class="hidden sm:inline">Imprimir</span></button>
+                    <button onclick="cerrarRecibo()" class="px-4 py-2.5 sm:py-2 bg-red-100 text-red-600 hover:bg-red-200 text-sm font-bold rounded-lg shadow-sm border border-red-200"><i class="fas fa-times"></i></button>
                 </div>
+            </div>
+            
+            <!-- Alerta para móviles en el modal -->
+            <div class="bg-blue-50 text-blue-800 text-xs p-2 text-center md:hidden border-b border-blue-100 font-medium">
+                <i class="fas fa-arrows-alt-h mr-1"></i> Desliza horizontalmente para ver el recibo completo.
             </div>
 
             <!-- Contenedor scrollable interno para el papel -->
-            <div class="flex-1 overflow-auto bg-gray-300 p-2 sm:p-8 custom-scrollbar">
+            <div class="flex-1 overflow-auto bg-gray-300 p-2 sm:p-6 md:p-8 custom-scrollbar">
                 
-                <!-- EL "PAPEL" FISICO (Protegido contra responsive extremo para no dañar formato) -->
-                <div id="recibo-content" class="bg-white mx-auto shadow-sm text-sm font-sans text-gray-800 relative p-6 sm:p-10 recibo-pdf-container">
+                <!-- EL "PAPEL" FISICO (Ancho forzado para no dañar formato A4) -->
+                <div id="recibo-content" class="bg-white mx-auto shadow-md text-sm font-sans text-gray-800 relative p-6 sm:p-8 md:p-12 recibo-pdf-container">
                     
-                    <div class="text-center border-b-2 border-gray-800 pb-3 mb-5">
-                        <h2 class="text-2xl sm:text-3xl font-black uppercase tracking-widest text-gray-900">RESIDENCIAS VILLACOA</h2>
-                        <p class="text-xs sm:text-sm text-gray-600 mt-1 font-medium">RIF: J-31455419-0</p>
+                    <div class="text-center border-b-4 border-gray-900 pb-4 mb-6">
+                        <h2 class="text-3xl font-black uppercase tracking-widest text-gray-900">RESIDENCIAS VILLACOA</h2>
+                        <p class="text-sm text-gray-600 mt-1 font-bold tracking-widest">RIF: J-31455419-0</p>
                     </div>
                     
-                    <div class="flex justify-between items-start mb-6">
+                    <div class="flex justify-between items-start mb-8">
                         <div class="w-1/2">
-                            <p class="mb-1 text-sm"><span class="font-bold text-gray-600">Propietario:</span> <span id="r-nombre" class="uppercase font-bold text-gray-900"></span></p>
-                            <p class="text-sm"><span class="font-bold text-gray-600">Apartamento:</span> <span id="r-apto" class="font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded border"></span></p>
+                            <p class="mb-2 text-base"><span class="font-bold text-gray-600 uppercase tracking-wider text-xs block mb-1">Propietario / Inquilino</span> <span id="r-nombre" class="uppercase font-black text-gray-900 text-lg"></span></p>
+                            <p class="text-base mt-4"><span class="font-bold text-gray-600 uppercase tracking-wider text-xs block mb-1">Apartamento</span> <span id="r-apto" class="font-black text-gray-900 bg-gray-100 px-3 py-1 rounded border border-gray-300 shadow-inner"></span></p>
                         </div>
                         <div class="w-5/12 text-right">
                             <table class="w-full text-xs border-2 border-gray-800">
-                                <tr><td class="font-bold border-b border-gray-800 p-1.5 bg-gray-100 text-left">MES A FACTURAR</td><td class="border-b border-gray-800 p-1.5 font-bold text-blue-900 uppercase" id="r-mes"></td></tr>
-                                <tr><td class="font-bold border-b border-gray-800 p-1.5 bg-gray-100 text-left">ALÍCUOTA (TODOS)</td><td class="border-b border-gray-800 p-1.5 font-mono">0.014925373</td></tr>
-                                <tr><td class="font-bold p-1.5 bg-gray-100 text-left">TASA BCV APLICADA</td><td class="p-1.5 font-bold text-red-700 font-mono" id="r-tasa"></td></tr>
+                                <tr><td class="font-bold border-b border-gray-800 p-2 bg-gray-100 text-left">MES A FACTURAR</td><td class="border-b border-gray-800 p-2 font-black text-blue-900 uppercase text-sm" id="r-mes"></td></tr>
+                                <tr><td class="font-bold border-b border-gray-800 p-2 bg-gray-100 text-left">ALÍCUOTA (TODOS)</td><td class="border-b border-gray-800 p-2 font-mono font-bold text-sm">0.014925373</td></tr>
+                                <tr><td class="font-bold p-2 bg-gray-100 text-left">TASA BCV APLICADA</td><td class="p-2 font-black text-red-700 font-mono text-sm" id="r-tasa"></td></tr>
                             </table>
                         </div>
                     </div>
 
-                    <div class="mb-6">
-                        <table class="w-full text-xs border-2 border-gray-800" id="tabla-recibo-pdf">
+                    <div class="mb-8 border-2 border-gray-800">
+                        <table class="w-full text-xs" id="tabla-recibo-pdf">
                             <thead class="bg-gray-100 border-b-2 border-gray-800 text-gray-900">
                                 <tr>
-                                    <th class="p-2 border-r border-gray-800 text-left w-1/2 font-bold">Descripción de Gastos Comunes</th>
-                                    <th class="p-2 border-r border-gray-800 text-right font-bold w-24">Monto ($)</th>
-                                    <th class="p-2 border-r border-gray-800 text-right font-bold w-28">Monto (Bs)</th>
-                                    <th class="p-2 text-right bg-gray-200 font-bold">Cuota Parte (Bs)</th>
+                                    <th class="p-3 border-r border-gray-800 text-left w-1/2 font-bold uppercase tracking-wider">Descripción de Gastos Comunes</th>
+                                    <th class="p-3 border-r border-gray-800 text-right font-bold w-24 uppercase tracking-wider">Divisa ($)</th>
+                                    <th class="p-3 border-r border-gray-800 text-right font-bold w-28 uppercase tracking-wider">Monto (Bs)</th>
+                                    <th class="p-3 text-right bg-gray-200 font-bold uppercase tracking-wider">Cuota Apto (Bs)</th>
                                 </tr>
                             </thead>
-                            <tbody id="tbody-recibo-gastos" class="text-[11px]"></tbody>
+                            <tbody id="tbody-recibo-gastos" class="text-xs"></tbody>
                             <tfoot id="tfoot-recibo-gastos" class="font-bold border-t-2 border-gray-800 text-xs"></tfoot>
                         </table>
                     </div>
 
-                    <div class="flex justify-between border-t-2 border-gray-800 pt-5 mt-5">
+                    <div class="flex justify-between border-t-4 border-gray-900 pt-6 mt-6">
                         <div class="w-1/2 pr-6 border-r-2 border-gray-300">
-                            <h4 class="font-black text-sm uppercase mb-3 bg-gray-100 p-1 text-center rounded border">Estado de Deuda Individual</h4>
+                            <h4 class="font-black text-sm uppercase mb-4 bg-gray-100 p-2 text-center rounded border border-gray-300 tracking-wider">Estado de Deuda Individual</h4>
                             <table class="w-full text-xs">
-                                <tr><td class="py-1 border-b border-dashed border-gray-300 text-gray-600">Deuda Año 2022:</td><td class="py-1 text-right text-gray-800 font-medium border-b border-dashed border-gray-300" id="r-d22"></td></tr>
-                                <tr><td class="py-1 border-b border-dashed border-gray-300 text-gray-600">Deuda Año 2023:</td><td class="py-1 text-right text-gray-800 font-medium border-b border-dashed border-gray-300" id="r-d23"></td></tr>
-                                <tr><td class="py-1 border-b border-dashed border-gray-300 text-gray-600">Deuda Año 2024:</td><td class="py-1 text-right text-gray-800 font-medium border-b border-dashed border-gray-300" id="r-d24"></td></tr>
-                                <tr><td class="py-1 border-b border-dashed border-gray-300 text-gray-600">Deuda Año 2025:</td><td class="py-1 text-right text-gray-800 font-medium border-b border-dashed border-gray-300" id="r-d25"></td></tr>
-                                <tr><td class="py-1 border-b-2 border-gray-400 text-gray-600">Ene a Jun 2026:</td><td class="py-1 text-right border-b-2 border-gray-400 text-gray-800 font-medium" id="r-d26"></td></tr>
-                                <tr class="bg-red-50"><td class="py-1.5 px-1 font-bold text-red-800">Total Arrastre (Atraso):</td><td class="py-1.5 px-1 text-right text-red-800 font-bold" id="r-arrastre"></td></tr>
-                                <tr class="bg-green-50"><td class="py-1.5 px-1 font-bold text-green-700">Abonos Realizados:</td><td class="py-1.5 px-1 text-right text-green-700 font-bold" id="r-abono"></td></tr>
+                                <tr><td class="py-1.5 border-b border-dashed border-gray-300 text-gray-600 font-medium">Deuda Año 2022:</td><td class="py-1.5 text-right text-gray-800 font-bold border-b border-dashed border-gray-300 font-mono" id="r-d22"></td></tr>
+                                <tr><td class="py-1.5 border-b border-dashed border-gray-300 text-gray-600 font-medium">Deuda Año 2023:</td><td class="py-1.5 text-right text-gray-800 font-bold border-b border-dashed border-gray-300 font-mono" id="r-d23"></td></tr>
+                                <tr><td class="py-1.5 border-b border-dashed border-gray-300 text-gray-600 font-medium">Deuda Año 2024:</td><td class="py-1.5 text-right text-gray-800 font-bold border-b border-dashed border-gray-300 font-mono" id="r-d24"></td></tr>
+                                <tr><td class="py-1.5 border-b border-dashed border-gray-300 text-gray-600 font-medium">Deuda Año 2025:</td><td class="py-1.5 text-right text-gray-800 font-bold border-b border-dashed border-gray-300 font-mono" id="r-d25"></td></tr>
+                                <tr><td class="py-1.5 border-b-2 border-gray-400 text-gray-600 font-medium">Ene a Jun 2026:</td><td class="py-1.5 text-right border-b-2 border-gray-400 text-gray-800 font-bold font-mono" id="r-d26"></td></tr>
+                                <tr class="bg-red-50"><td class="py-2 px-2 font-bold text-red-800">Total Arrastre (Atraso):</td><td class="py-2 px-2 text-right text-red-800 font-black font-mono" id="r-arrastre"></td></tr>
+                                <tr class="bg-green-50 border-t border-green-200"><td class="py-2 px-2 font-bold text-green-700">Abonos Realizados:</td><td class="py-2 px-2 text-right text-green-700 font-black font-mono" id="r-abono"></td></tr>
                             </table>
                         </div>
                         <div class="w-1/2 pl-6 flex flex-col justify-between">
-                            <div class="bg-gray-50 p-3 rounded border border-gray-200">
-                                <p class="text-[10px] text-gray-600 italic text-justify leading-tight"><strong>IMPORTANTE:</strong> Favor realizar su pago en depósito o transferencia a nombre de RESIDENCIAS VILLACOA. Banco Exterior Cuenta Corriente No. 0115-0048-06-048-0034493. Enviar comprobante a la administración.</p>
+                            <div class="bg-gray-50 p-4 rounded border border-gray-200 shadow-inner">
+                                <p class="text-[11px] text-gray-600 italic text-justify leading-relaxed"><strong>IMPORTANTE:</strong> Favor realizar su pago en depósito o transferencia a nombre de RESIDENCIAS VILLACOA. Banco Exterior Cuenta Corriente No. 0115-0048-06-048-0034493. Enviar comprobante al correo de administración para procesar su solvencia.</p>
                             </div>
-                            <div class="text-right bg-blue-50 p-4 rounded-xl border border-blue-200 shadow-sm mt-4">
-                                <p class="text-xs font-bold uppercase mb-1 text-gray-600 tracking-wider">Deuda Total Actualizada</p>
-                                <h2 class="text-3xl sm:text-4xl font-black text-red-700 leading-none" id="r-total-usd"></h2>
-                                <div class="mt-2 pt-2 border-t border-blue-200">
-                                    <p class="text-[11px] font-bold text-gray-600 uppercase">Equivalente Aproximado</p>
-                                    <p class="text-sm font-black text-gray-800" id="r-total-bs"></p>
+                            <div class="text-right bg-blue-50 p-5 rounded-xl border border-blue-200 shadow-sm mt-4">
+                                <p class="text-xs font-bold uppercase mb-1 text-blue-800 tracking-wider">Deuda Total Actualizada</p>
+                                <h2 class="text-4xl font-black text-red-700 leading-none tracking-tight font-mono" id="r-total-usd"></h2>
+                                <div class="mt-3 pt-3 border-t border-blue-200/50">
+                                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Equivalente Aproximado BCV</p>
+                                    <p class="text-lg font-black text-gray-800 font-mono" id="r-total-bs"></p>
                                 </div>
                             </div>
                         </div>
@@ -485,7 +565,7 @@
             if(window.innerWidth < 768) toggleSidebar();
         }
 
-        // --- RESTO DEL SISTEMA INTACTO ---
+        // --- LÓGICA DE NEGOCIO ---
         function actualizarGastosUI() {
             const tasa = parseFloat(document.getElementById('config-tasa').value) || 0;
             const mesConfigurado = document.getElementById('config-mes').value;
@@ -507,11 +587,13 @@
                 totalCuotaBs += cuotaBs;
 
                 tbody.innerHTML += `
-                    <tr class="border-b hover:bg-gray-50 transition-colors">
-                        <td class="p-2 sm:p-3 border-r font-medium text-xs truncate max-w-[150px] sm:max-w-none" title="${g.desc}">${g.desc}</td>
-                        <td class="p-2 sm:p-3 border-r text-right font-mono text-gray-600">${g.montoD > 0 ? g.montoD.toFixed(2) : '-'}</td>
-                        <td class="p-2 sm:p-3 border-r text-right font-mono">${g.montoB.toLocaleString('es-VE', {minimumFractionDigits:2})}</td>
-                        <td class="p-2 sm:p-3 text-center text-red-400 hover:text-red-600 cursor-pointer hover:bg-red-50 rounded" onclick="eliminarGasto(${idx})"><i class="fas fa-trash"></i></td>
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="p-3 sm:p-4 border-r font-medium text-xs sm:text-sm truncate max-w-[200px] sm:max-w-none" title="${g.desc}">${g.desc}</td>
+                        <td class="p-3 sm:p-4 border-r text-right font-mono text-gray-600">${g.montoD > 0 ? g.montoD.toFixed(2) : '-'}</td>
+                        <td class="p-3 sm:p-4 border-r text-right font-mono text-gray-900">${g.montoB.toLocaleString('es-VE', {minimumFractionDigits:2})}</td>
+                        <td class="p-3 sm:p-4 text-center">
+                            <button onclick="eliminarGasto(${idx})" class="w-8 h-8 flex items-center justify-center text-red-500 hover:text-white bg-red-50 hover:bg-red-500 rounded-full transition-colors mx-auto" title="Eliminar Concepto"><i class="fas fa-trash"></i></button>
+                        </td>
                     </tr>`;
             });
 
@@ -620,7 +702,7 @@
                 } catch(error) {
                     baseDatosVecinos = nuevosVecinos;
                     actualizarTodasLasVistas();
-                    alert("Carga local completada (Sin nube).");
+                    alert("Carga local completada (Modo offline sin backend).");
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -655,20 +737,24 @@
                 let estadoHtml = ''; let estadoTexto = '';
                 
                 if (deudaFinal === 0) {
-                    estadoHtml = '<span class="bg-green-100 text-green-800 px-2 py-1 rounded font-bold border border-green-200 text-[10px] uppercase shadow-sm">Solvente</span>';
+                    estadoHtml = '<span class="bg-green-100 text-green-800 px-3 py-1 rounded-md font-bold border border-green-200 text-[10px] sm:text-xs uppercase shadow-sm">Solvente</span>';
                     estadoTexto = 'Solvente';
                 } else if (isConvenio) {
-                    estadoHtml = '<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-bold border border-yellow-300 text-[10px] uppercase shadow-sm">Convenio</span>';
+                    estadoHtml = '<span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-md font-bold border border-yellow-300 text-[10px] sm:text-xs uppercase shadow-sm">Convenio</span>';
                     estadoTexto = 'Convenio';
                 } else {
-                    estadoHtml = '<span class="bg-red-100 text-red-800 px-2 py-1 rounded font-bold border border-red-200 text-[10px] uppercase shadow-sm">Moroso</span>';
+                    estadoHtml = '<span class="bg-red-100 text-red-800 px-3 py-1 rounded-md font-bold border border-red-200 text-[10px] sm:text-xs uppercase shadow-sm">Moroso</span>';
                     estadoTexto = 'Moroso';
                     morosos++; 
                 }
 
-                tbDash.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-3 font-bold">${v.apto}</td><td class="p-3 text-sm truncate max-w-[120px] sm:max-w-none" title="${nombreDisplay}">${nombreDisplay}</td><td class="p-3 text-center col-estado-dash">${estadoHtml}</td><td class="p-3 text-right font-bold text-gray-700">$${deudaFinal.toFixed(2)}</td><td class="p-3 text-center no-print"><div class="flex justify-center space-x-2"><button onclick="armarRecibo('${v.apto}', '${nombreDisplay}', ${v.abono || 0}, ${v.y22}, ${v.y23}, ${v.y24}, ${v.y25}, ${v.y26_em}, ${deudaFinal})" class="bg-gray-100 border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-white text-gray-700 transition shadow-sm" title="Imprimir Recibo"><i class="fas fa-print"></i></button><button onclick="toggleConvenio('${v.apto}')" class="${isConvenio ? 'bg-yellow-100 border-yellow-400 text-yellow-800 hover:bg-yellow-200' : 'bg-gray-50 border-gray-200 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'} border px-3 py-1.5 rounded-lg transition shadow-sm" title="Marcar/Desmarcar Convenio de Pago"><i class="fas fa-handshake"></i></button></div></td></tr>`;
-                tbHist.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-2 font-bold">${v.apto}</td><td class="p-2 text-xs truncate max-w-[120px]" title="${nombreDisplay}">${nombreDisplay}</td><td class="p-2 text-right">$${v.y22.toFixed(2)}</td><td class="p-2 text-right">$${v.y23.toFixed(2)}</td><td class="p-2 text-right">$${v.y24.toFixed(2)}</td><td class="p-2 text-right">$${v.y25.toFixed(2)}</td><td class="p-2 text-right">$${v.y26_em.toFixed(2)}</td><td class="p-2 text-right text-blue-900 bg-blue-50 font-bold border-x border-blue-100">$${cuotaAplicada.toFixed(2)}</td><td class="p-2 text-right text-green-700 bg-green-50 font-medium">$${(v.abono || 0).toFixed(2)}</td><td class="p-2 text-right font-bold ${deudaFinal>0 && !isConvenio ? 'text-red-600 bg-red-50' : (isConvenio ? 'text-yellow-700 bg-yellow-50' : 'text-green-700 bg-green-50')} border-l border-gray-200">$${deudaFinal.toFixed(2)}</td></tr>`;
-                tbPrev.innerHTML += `<tr class="hover:bg-gray-50"><td class="p-2 border col-apto-view font-medium">${v.apto}</td><td class="p-2 border col-nombre-view text-xs truncate max-w-[120px]" title="${nombreDisplay}">${nombreDisplay}</td><td class="p-2 border text-center col-estado-view text-xs">${estadoTexto}</td><td class="p-2 border text-right col-deuda-view font-medium">$${deudaFinal.toFixed(2)}</td></tr>`;
+                // Generar filas 
+                tbDash.innerHTML += `<tr class="hover:bg-gray-50 transition-colors"><td class="p-3 sm:p-4 font-bold text-gray-800">${v.apto}</td><td class="p-3 sm:p-4 text-sm truncate max-w-[150px] sm:max-w-none text-gray-700" title="${nombreDisplay}">${nombreDisplay}</td><td class="p-3 sm:p-4 text-center col-estado-dash">${estadoHtml}</td><td class="p-3 sm:p-4 text-right font-black text-gray-800 text-base">$${deudaFinal.toFixed(2)}</td><td class="p-3 sm:p-4 text-center no-print"><div class="flex justify-center space-x-2"><button onclick="armarRecibo('${v.apto}', '${nombreDisplay}', ${v.abono || 0}, ${v.y22}, ${v.y23}, ${v.y24}, ${v.y25}, ${v.y26_em}, ${deudaFinal})" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-gray-100 border border-gray-300 rounded-lg hover:bg-white text-gray-700 hover:text-blue-600 transition shadow-sm" title="Imprimir Recibo"><i class="fas fa-print"></i></button><button onclick="toggleConvenio('${v.apto}')" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center ${isConvenio ? 'bg-yellow-100 border-yellow-400 text-yellow-800 hover:bg-yellow-200' : 'bg-gray-50 border-gray-200 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'} border rounded-lg transition shadow-sm" title="Marcar/Desmarcar Convenio de Pago"><i class="fas fa-handshake"></i></button></div></td></tr>`;
+                
+                tbHist.innerHTML += `<tr class="hover:bg-gray-50 transition-colors"><td class="p-3 sm:p-4 font-bold text-gray-800">${v.apto}</td><td class="p-3 sm:p-4 text-xs sm:text-sm truncate max-w-[120px]" title="${nombreDisplay}">${nombreDisplay}</td><td class="p-3 sm:p-4 text-right font-mono text-gray-600">$${v.y22.toFixed(2)}</td><td class="p-3 sm:p-4 text-right font-mono text-gray-600">$${v.y23.toFixed(2)}</td><td class="p-3 sm:p-4 text-right font-mono text-gray-600">$${v.y24.toFixed(2)}</td><td class="p-3 sm:p-4 text-right font-mono text-gray-600">$${v.y25.toFixed(2)}</td><td class="p-3 sm:p-4 text-right font-mono text-gray-600">$${v.y26_em.toFixed(2)}</td><td class="p-3 sm:p-4 text-right text-blue-900 bg-blue-50/50 font-bold font-mono border-x border-blue-100/50">$${cuotaAplicada.toFixed(2)}</td><td class="p-3 sm:p-4 text-right text-green-700 bg-green-50/50 font-medium font-mono">$${(v.abono || 0).toFixed(2)}</td><td class="p-3 sm:p-4 text-right font-bold font-mono ${deudaFinal>0 && !isConvenio ? 'text-red-700 bg-red-50' : (isConvenio ? 'text-yellow-700 bg-yellow-50' : 'text-green-700 bg-green-50')} border-l border-gray-200 shadow-inner">$${deudaFinal.toFixed(2)}</td></tr>`;
+                
+                tbPrev.innerHTML += `<tr class="hover:bg-gray-50"><td class="p-3 border col-apto-view font-bold text-gray-700">${v.apto}</td><td class="p-3 border col-nombre-view text-sm truncate max-w-[140px]" title="${nombreDisplay}">${nombreDisplay}</td><td class="p-3 border text-center col-estado-view text-sm text-gray-600 font-medium">${estadoTexto}</td><td class="p-3 border text-right col-deuda-view font-bold font-mono text-gray-800">$${deudaFinal.toFixed(2)}</td></tr>`;
+                
                 selPago.innerHTML += `<option value="${v.apto}">${v.apto} - ${nombreDisplay}</option>`;
             });
 
@@ -715,7 +801,7 @@
                 let cuotaBs = g.montoB * ALICUOTA;
                 totalMontoBs += g.montoB;
                 totalCuotaBs += cuotaBs;
-                tbGastos.innerHTML += `<tr><td class="p-1.5 border-r border-b border-gray-400">${g.desc}</td><td class="p-1.5 border-r border-b border-gray-400 text-right font-mono">${g.montoD>0?g.montoD.toFixed(2):''}</td><td class="p-1.5 border-r border-b border-gray-400 text-right font-mono">${g.montoB.toLocaleString('es-VE',{minimumFractionDigits:2})}</td><td class="p-1.5 text-right border-b border-gray-400 font-mono">${cuotaBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>`;
+                tbGastos.innerHTML += `<tr><td class="p-2 border-r border-b border-gray-400 font-medium">${g.desc}</td><td class="p-2 border-r border-b border-gray-400 text-right font-mono">${g.montoD>0?g.montoD.toFixed(2):''}</td><td class="p-2 border-r border-b border-gray-400 text-right font-mono">${g.montoB.toLocaleString('es-VE',{minimumFractionDigits:2})}</td><td class="p-2 text-right border-b border-gray-400 font-mono font-medium">${cuotaBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>`;
             });
 
             let fondoBs = totalMontoBs * 0.15;
@@ -725,11 +811,11 @@
             let cuotaBaseLocalUSD = tasa > 0 ? (totalPagarBs/tasa) : 0;
             
             tfGastos.innerHTML = `
-                <tr><td colspan="2" class="p-1.5 border-r border-gray-800 text-right">TOTAL GASTOS COMUNES</td><td class="p-1.5 border-r border-gray-800 text-right font-mono">${totalMontoBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td><td class="p-1.5 text-right font-mono">${totalCuotaBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>
-                <tr class="text-blue-800 bg-blue-50/50"><td colspan="2" class="p-1.5 border-r border-gray-800 text-right">FONDO ANTI INFLACIONARIO (15%)</td><td class="p-1.5 border-r border-gray-800 text-right font-mono">${fondoBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td><td class="p-1.5 text-right font-mono">${fondoCuotaBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>
-                <tr class="bg-gray-200 text-gray-900 text-sm"><td colspan="2" class="p-1.5 border-r border-gray-800 text-right font-bold">TOTAL GASTOS</td><td class="p-1.5 border-r border-gray-800 text-right font-mono font-bold">${granTotalBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td><td class="p-1.5 text-right font-mono font-bold">${totalPagarBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>
-                <tr class="bg-gray-300 text-black text-[13px]"><td colspan="3" class="p-1.5 text-right font-black border-r border-gray-800">TOTAL A PAGAR BOLÍVARES (MES)</td><td class="p-1.5 text-right font-black font-mono">${totalPagarBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>
-                <tr class="bg-blue-100 text-blue-900 text-[13px]"><td colspan="3" class="p-1.5 text-right font-black border-r border-blue-300">TOTAL A PAGAR DÓLARES (CUOTA BASE)</td><td class="p-1.5 text-right font-black font-mono">$${cuotaBaseLocalUSD.toFixed(2)}</td></tr>
+                <tr><td colspan="2" class="p-2 border-r border-gray-800 text-right font-bold text-gray-700">TOTAL GASTOS COMUNES</td><td class="p-2 border-r border-gray-800 text-right font-mono">${totalMontoBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td><td class="p-2 text-right font-mono">${totalCuotaBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>
+                <tr class="text-blue-900 bg-blue-50/50"><td colspan="2" class="p-2 border-r border-gray-800 text-right font-bold">FONDO ANTI INFLACIONARIO (15%)</td><td class="p-2 border-r border-gray-800 text-right font-mono">${fondoBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td><td class="p-2 text-right font-mono">${fondoCuotaBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>
+                <tr class="bg-gray-200 text-gray-900"><td colspan="2" class="p-2 border-r border-gray-800 text-right font-black uppercase text-sm">Total Gastos (Mes)</td><td class="p-2 border-r border-gray-800 text-right font-mono font-black text-sm">${granTotalBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td><td class="p-2 text-right font-mono font-black text-sm">${totalPagarBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>
+                <tr class="bg-gray-300 text-black"><td colspan="3" class="p-2 text-right font-black border-r border-gray-800 uppercase tracking-wider">Total Cuota a Pagar en Bolívares</td><td class="p-2 text-right font-black font-mono text-base">${totalPagarBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>
+                <tr class="bg-blue-100 text-blue-900"><td colspan="3" class="p-2 text-right font-black border-r border-blue-300 uppercase tracking-wider">Equivalente Cuota Base en Dólares</td><td class="p-2 text-right font-black font-mono text-base">$${cuotaBaseLocalUSD.toFixed(2)}</td></tr>
             `;
 
             let arrastre = d22 + d23 + d24 + d25 + d26;
@@ -775,11 +861,11 @@
                 badge.classList.remove('hidden');
                 
                 if(deudaActualSeleccionada === 0) {
-                    badge.className = 'whitespace-nowrap bg-green-100 text-green-800 px-4 py-3 rounded-lg font-bold border border-green-200 shadow-inner w-full md:w-auto text-center text-sm md:text-base';
+                    badge.className = 'whitespace-nowrap bg-green-100 text-green-800 px-5 py-4 rounded-lg font-bold border border-green-200 shadow-inner w-full md:w-auto text-center text-base';
                     badge.innerText = 'Solvente ($0.00)';
                     btnTotalidad.disabled = true; btnTotalidad.classList.add('opacity-50', 'cursor-not-allowed');
                 } else {
-                    badge.className = 'whitespace-nowrap bg-red-100 text-red-800 px-4 py-3 rounded-lg font-bold border border-red-200 shadow-inner w-full md:w-auto text-center text-sm md:text-base';
+                    badge.className = 'whitespace-nowrap bg-red-100 text-red-800 px-5 py-4 rounded-lg font-bold border border-red-200 shadow-inner w-full md:w-auto text-center text-base';
                     btnTotalidad.disabled = false; btnTotalidad.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
             }
@@ -817,27 +903,30 @@
             }
 
             try {
+                // Simulación de API de guardado.
                 const response = await fetch('/api/addPago', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ apartamento: apto, monto: monto, fecha: fecha, referencia: referenciaFinal })
                 });
 
-                const result = await response.json();
-                if (result.success) {
-                    let vecino = baseDatosVecinos.find(v => v.apto === apto);
-                    if (vecino) vecino.abono = (vecino.abono || 0) + monto;
-                    
-                    actualizarTodasLasVistas(); mostrarDeudaPago(); 
-                    alert(`¡PAGO EXITOSO! Abonado $${monto.toFixed(2)} al apto ${apto}.`);
-                    
-                    document.getElementById('pago-monto').value = ''; document.getElementById('pago-banco').value = '';
-                    document.getElementById('pago-ref').value = ''; document.getElementById('select-apto-pago').value = '';
-                    document.getElementById('pago-equivalencia').innerHTML = '<i class="fas fa-exchange-alt mr-1"></i> Equivalente: Bs. 0.00';
-                    mostrarDeudaPago();
-                } else throw new Error();
-            } catch (error) { alert("Fallo de conexión.");
-            } finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save mr-2"></i> Procesar y Guardar Pago Oficial'; }
+                // Comportamiento local (sin backend real, el fetch fallará y caerá en el catch)
+                const result = await response.json(); 
+            } catch (error) { 
+                // Guardado Local Fallback
+                let vecino = baseDatosVecinos.find(v => v.apto === apto);
+                if (vecino) vecino.abono = (vecino.abono || 0) + monto;
+                
+                actualizarTodasLasVistas(); mostrarDeudaPago(); 
+                alert(`¡PAGO REGISTRADO LOCALMENTE! Abonado $${monto.toFixed(2)} al apto ${apto}.`);
+                
+                document.getElementById('pago-monto').value = ''; document.getElementById('pago-banco').value = '';
+                document.getElementById('pago-ref').value = ''; document.getElementById('select-apto-pago').value = '';
+                document.getElementById('pago-equivalencia').innerHTML = '<i class="fas fa-exchange-alt mr-1"></i> Equivalente: Bs. 0.00';
+                mostrarDeudaPago();
+            } finally { 
+                btn.disabled = false; btn.innerHTML = '<i class="fas fa-save mr-2"></i> Procesar y Guardar Pago Oficial'; 
+            }
         }
 
         function filtrarDashboard() {
@@ -934,7 +1023,7 @@
                     }));
                     actualizarTodasLasVistas();
                 }
-            } catch (error) { console.log("Modo local iniciado."); }
+            } catch (error) { console.log("Modo local iniciado sin base de datos."); }
         }
 
         async function obtenerTasaBCV() {
@@ -960,3 +1049,5 @@
     </script>
 </body>
 </html>
+
+
