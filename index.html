@@ -65,7 +65,7 @@
         <header class="bg-white shadow-sm p-4 flex justify-between items-center no-print border-b border-gray-200 z-20">
             <div>
                 <h2 class="text-2xl font-bold text-gray-800" id="header-title">Dashboard General</h2>
-                <p class="text-sm text-gray-500"><i class="fas fa-calendar-alt mr-1"></i> Tasa BCV Actual: <span class="font-semibold text-blue-600" id="header-tasa">667.05</span></p>
+                <p class="text-sm text-gray-500"><i class="fas fa-calendar-alt mr-1"></i> Tasa BCV Actual: <span class="font-semibold text-blue-600" id="header-tasa">Calculando...</span></p>
             </div>
             <div class="flex space-x-4">
                 <div class="text-right text-xs bg-blue-50 text-blue-800 p-2 rounded border border-blue-100 shadow-sm hidden md:block">
@@ -77,6 +77,7 @@
 
         <div class="p-6 relative flex-1 bg-gray-50">
 
+            <!-- VISTA DASHBOARD -->
             <div id="view-dashboard" class="view active">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500 flex items-center justify-between">
@@ -103,7 +104,7 @@
                     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500 flex items-center justify-between">
                         <div>
                             <p class="text-sm text-gray-500 font-bold uppercase">Cuota Base</p>
-                            <h3 class="text-2xl font-bold text-gray-800" id="kpi-cuota">$22.27</h3>
+                            <h3 class="text-2xl font-bold text-gray-800" id="kpi-cuota">$0.00</h3>
                         </div>
                         <i class="fas fa-home text-3xl text-blue-100"></i>
                     </div>
@@ -113,7 +114,14 @@
                     <div class="flex justify-between items-center mb-4 no-print flex-wrap gap-2">
                         <h3 class="text-lg font-bold text-gray-700">Estado de Cuenta por Apartamento</h3>
                         <div class="flex space-x-2 w-full md:w-auto">
-                            <input type="text" id="search-dashboard" placeholder="Buscar Apto..." class="border border-gray-300 rounded px-3 py-1.5 text-sm" onkeyup="filtrarTabla('search-dashboard', 'tbody-dashboard')">
+                            <!-- Filtros añadidos al Dashboard -->
+                            <input type="text" id="search-dashboard" placeholder="Buscar solo Apto..." class="border border-gray-300 rounded px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-blue-500" onkeyup="filtrarDashboard()">
+                            <select id="filtro-estado-dashboard" class="border border-gray-300 rounded px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-blue-500" onchange="filtrarDashboard()">
+                                <option value="todos">Todos los Estados</option>
+                                <option value="solvente">Solo Solventes</option>
+                                <option value="moroso">Solo Morosos</option>
+                                <option value="convenio">Solo Convenio</option>
+                            </select>
                             <button onclick="descargarPDF('export-dashboard-area', 'Resumen_Villacoa')" class="bg-gray-800 text-white px-4 py-1.5 rounded text-sm shadow hover:bg-gray-700 transition"><i class="fas fa-file-pdf mr-1"></i> Exportar PDF</button>
                         </div>
                     </div>
@@ -183,7 +191,7 @@
                     <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2"><i class="fas fa-sliders-h mr-2"></i> Reportes Especiales</h3>
                     <div class="flex flex-col md:flex-row gap-6">
                         <div class="w-full md:w-1/3 bg-gray-50 p-4 rounded-lg border">
-                            <h4 class="font-bold text-gray-700 mb-3 text-sm">Filtros Visibles:</h4>
+                            <h4 class="font-bold text-gray-700 mb-3 text-sm">Filtros Visibles (Columnas):</h4>
                             <div class="space-y-2 text-sm text-gray-600 mb-6">
                                 <label class="flex items-center space-x-2"><input type="checkbox" id="col-apto" checked class="form-checkbox"><span>Apartamento</span></label>
                                 <label class="flex items-center space-x-2"><input type="checkbox" id="col-nombre" checked class="form-checkbox"><span>Propietario</span></label>
@@ -200,8 +208,8 @@
                             </select>
 
                             <div class="flex space-x-2">
-                                <button onclick="exportarReporte('pdf')" class="w-1/2 bg-red-600 text-white p-2 rounded shadow font-medium"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
-                                <button onclick="exportarReporte('csv')" class="w-1/2 bg-green-600 text-white p-2 rounded shadow font-medium"><i class="fas fa-file-excel mr-1"></i> Excel</button>
+                                <button onclick="exportarReporte('pdf')" class="w-1/2 bg-red-600 text-white p-2 rounded shadow font-medium hover:bg-red-700 transition"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
+                                <button onclick="exportarReporte('csv')" class="w-1/2 bg-green-600 text-white p-2 rounded shadow font-medium hover:bg-green-700 transition"><i class="fas fa-file-excel mr-1"></i> Excel</button>
                             </div>
                         </div>
                         <div class="w-full md:w-2/3 border rounded-lg overflow-hidden" id="preview-area-container">
@@ -219,6 +227,13 @@
                                         </tr>
                                     </thead>
                                     <tbody id="tbody-preview"><tr><td colspan="4" class="p-4 text-center text-gray-400">Sin datos</td></tr></tbody>
+                                    <!-- Pie de tabla Totalizador para reportes -->
+                                    <tfoot class="bg-gray-200 border-t-2 border-gray-400 font-bold" id="tfoot-reporte">
+                                        <tr>
+                                            <td colspan="3" class="p-2 border text-right uppercase text-gray-800">Deuda Total (Según Filtro):</td>
+                                            <td class="p-2 border text-right text-red-700" id="total-deuda-reporte">$0.00</td>
+                                        </tr>
+                                    </tfoot>
                                 </table>
                             </div>
                         </div>
@@ -271,7 +286,7 @@
                         <div class="flex space-x-4">
                             <div>
                                 <label class="text-xs font-bold text-gray-500 uppercase">Tasa BCV:</label>
-                                <input type="number" step="0.01" id="config-tasa" value="667.05" onchange="actualizarGastosUI()" class="border p-1 w-24 rounded text-sm text-right font-bold bg-gray-50">
+                                <input type="number" step="0.01" id="config-tasa" value="667.05" onchange="actualizarGastosUI()" class="border p-1 w-24 rounded text-sm text-right font-bold bg-gray-50 text-blue-700">
                             </div>
                             <div>
                                 <label class="text-xs font-bold text-gray-500 uppercase">Mes a Facturar:</label>
@@ -290,7 +305,7 @@
                                     <div><label class="text-xs font-bold text-gray-600">Monto ($)</label><input type="number" step="0.01" id="g-dolar" class="w-full p-2 border text-sm rounded"></div>
                                     <div><label class="text-xs font-bold text-gray-600">Monto (Bs)</label><input type="number" step="0.01" id="g-bs" class="w-full p-2 border text-sm rounded"></div>
                                 </div>
-                                <p class="text-[10px] text-gray-500 leading-tight">Nota: Si dejas el $ en blanco, se usará solo el Bs. Si pones el $, se calcula el Bs automáticamente.</p>
+                                <p class="text-[10px] text-gray-500 leading-tight">Nota: Si dejas el $ en blanco, se usará solo el Bs. Si pones el $, se calcula el Bs automáticamente con la tasa BCV actual.</p>
                                 <button type="submit" class="w-full bg-blue-600 text-white font-bold p-2 text-sm rounded hover:bg-blue-700">Añadir a la lista</button>
                             </form>
                             
@@ -326,7 +341,7 @@
             <button onclick="cerrarRecibo()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 no-print text-2xl z-50"><i class="fas fa-times"></i></button>
             
             <div id="recibo-content" class="p-8 bg-white text-sm font-sans text-gray-800 relative">
-                <!-- Membrete idéntico al PDF -->
+                <!-- Membrete -->
                 <div class="text-center border-b-2 border-gray-800 pb-3 mb-4">
                     <h2 class="text-2xl font-bold uppercase tracking-widest text-gray-900">RESIDENCIAS VILLACOA</h2>
                     <p class="text-xs text-gray-600 mt-1">RIF: J-31455419-0</p>
@@ -346,7 +361,7 @@
                     </div>
                 </div>
 
-                <!-- Tabla de Gastos Inyectada Dinámicamente -->
+                <!-- Tabla de Gastos -->
                 <div class="mb-6">
                     <table class="w-full text-xs border border-gray-800" id="tabla-recibo-pdf">
                         <thead class="bg-gray-100 border-b-2 border-gray-800">
@@ -357,12 +372,8 @@
                                 <th class="p-1.5 text-right bg-gray-200">Cuota Parte (Bs)</th>
                             </tr>
                         </thead>
-                        <tbody id="tbody-recibo-gastos" class="text-[10px]">
-                            <!-- Generado por JS -->
-                        </tbody>
-                        <tfoot id="tfoot-recibo-gastos" class="font-bold border-t-2 border-gray-800 text-[11px]">
-                            <!-- Totales generados por JS -->
-                        </tfoot>
+                        <tbody id="tbody-recibo-gastos" class="text-[10px]"></tbody>
+                        <tfoot id="tfoot-recibo-gastos" class="font-bold border-t-2 border-gray-800 text-[11px]"></tfoot>
                     </table>
                 </div>
 
@@ -405,7 +416,7 @@
         let baseDatosVecinos = [];
         const ALICUOTA = 0.014925373;
         
-        // Base de datos de gastos predeterminada (Igual a tu PDF para que no arranques en blanco)
+        // Base de datos de gastos predeterminada
         let gastosMes = [
             { desc: "LIMPIEZA EDIFICIO CARLOS VALERA", montoD: 180, montoB: 112052.90 },
             { desc: "ELECT. SERV. GENERALES CTO 488", montoD: 0, montoB: 15354.87 },
@@ -431,9 +442,8 @@
             { desc: "COMISIONES BANCARIAS", montoD: 0, montoB: 10403.15 }
         ];
 
-        let CUOTA_BASE = 0; // Se calcula automáticamente de los gastos
+        let CUOTA_BASE = 0; 
 
-        // Cambio de vistas
         function changeView(viewId) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById('view-' + viewId).classList.add('active');
@@ -442,9 +452,9 @@
         }
 
         function actualizarGastosUI() {
-            const tasa = parseFloat(document.getElementById('config-tasa').value) || 667.05;
-            document.getElementById('header-tasa').innerText = tasa.toFixed(2);
-            document.getElementById('r-tasa').innerText = tasa.toFixed(2);
+            const tasa = parseFloat(document.getElementById('config-tasa').value) || 0;
+            document.getElementById('header-tasa').innerText = tasa > 0 ? tasa.toFixed(2) : "Calculando...";
+            document.getElementById('r-tasa').innerText = tasa > 0 ? tasa.toFixed(2) : "0.00";
             document.getElementById('r-mes').innerText = document.getElementById('config-mes').value;
             document.getElementById('sidebar-mes').innerHTML = `Estado de Cuenta<br>${document.getElementById('config-mes').value}`;
             
@@ -468,15 +478,13 @@
                     </tr>`;
             });
 
-            // Cálculos del Fondo y Totales
             let fondoBs = totalMontoBs * 0.15;
             let granTotalBs = totalMontoBs + fondoBs;
-            
             let fondoCuotaBs = totalCuotaBs * 0.15;
             let totalCuotaAptoBs = totalCuotaBs + fondoCuotaBs;
             
             // Cuota Base Dólares
-            CUOTA_BASE = totalCuotaAptoBs / tasa;
+            CUOTA_BASE = tasa > 0 ? (totalCuotaAptoBs / tasa) : 0;
 
             document.getElementById('res-total-bs').innerText = totalMontoBs.toLocaleString('es-VE', {minimumFractionDigits:2});
             document.getElementById('res-fondo-bs').innerText = fondoBs.toLocaleString('es-VE', {minimumFractionDigits:2});
@@ -484,8 +492,8 @@
             document.getElementById('res-cuota-base').innerText = '$' + CUOTA_BASE.toFixed(2);
             document.getElementById('kpi-cuota').innerText = '$' + CUOTA_BASE.toFixed(2);
 
-            // Refrescar vecinos con nueva cuota
-            actualizarTodasLasVistas();
+            // Refrescar vecinos con nueva cuota calculada
+            if(baseDatosVecinos.length > 0) actualizarTodasLasVistas();
         }
 
         function agregarGasto(e) {
@@ -493,9 +501,10 @@
             const desc = document.getElementById('g-desc').value;
             let d = parseFloat(document.getElementById('g-dolar').value) || 0;
             let b = parseFloat(document.getElementById('g-bs').value) || 0;
-            const tasa = parseFloat(document.getElementById('config-tasa').value) || 667.05;
+            const tasa = parseFloat(document.getElementById('config-tasa').value) || 0;
 
-            if(d > 0 && b === 0) b = d * tasa; // Si solo puso $, calcula el Bs
+            // Si puso dólares pero no bolívares, calculamos en base a la tasa actual
+            if(d > 0 && b === 0 && tasa > 0) b = d * tasa; 
             
             gastosMes.push({ desc: desc.toUpperCase(), montoD: d, montoB: b });
             e.target.reset();
@@ -517,22 +526,21 @@
                 const workbook = XLSX.read(data, {type: 'array'});
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
                 
-                // defval: '' es vital para que respete los espacios en blanco
+                // defval: '' RESPETA LOS ESPACIOS EN BLANCO Y ALINEA COLUMNAS
                 const json = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ''});
                 
                 let nuevosVecinos = [];
 
                 json.forEach(row => {
-                    // Busca el índice de la columna que parece un apartamento
                     let aptoIdx = row.findIndex(c => String(c).trim().match(/^(\d{1,2}|PH|PB)-[A-Z0-9]$/i));
                     
                     if (aptoIdx !== -1) {
                         let apto = String(row[aptoIdx]).trim();
-                        if (apto === ',' || apto.toLowerCase().includes('total')) return; // ignora totales y basurilla
+                        if (apto === ',' || apto.toLowerCase().includes('total')) return;
 
                         let nombre = String(row[aptoIdx + 1] || 'S/N').trim();
                         
-                        // PROTECCIÓN VITAL: Mantener "Convenio" si el vecino ya lo tenía en la BD antes de subir el Excel nuevo
+                        // Protección de Convenio
                         let vecinoAntiguo = baseDatosVecinos.find(v => v.apto === apto);
                         if (vecinoAntiguo && vecinoAntiguo.nombre.includes(" (CONVENIO)")) {
                             if (!nombre.includes(" (CONVENIO)")) {
@@ -546,7 +554,6 @@
                             return parseFloat(String(val).replace(/[^0-9.-]+/g,"")) || 0;
                         };
 
-                        // Lectura con alineación estricta de columnas, saltando la columna del Nombre (aptoIdx + 1)
                         let y22 = parseMonto(row[aptoIdx + 2]);
                         let y23 = parseMonto(row[aptoIdx + 3]);
                         let y24 = parseMonto(row[aptoIdx + 4]);
@@ -563,8 +570,8 @@
                     return;
                 }
 
-                // Guardar en la Nube (Supabase)
-                document.getElementById('gran-total-historico').innerText = 'Sincronizando con Base de Datos...';
+                // Subir a Supabase automáticamente
+                document.getElementById('gran-total-historico').innerText = 'Sincronizando con BD...';
                 
                 try {
                     const response = await fetch('/api/importarHistorico', {
@@ -574,11 +581,10 @@
                     });
                     
                     const result = await response.json();
-                    
                     if(result.success) {
                         baseDatosVecinos = nuevosVecinos;
                         actualizarTodasLasVistas();
-                        alert(`¡Éxito! ${baseDatosVecinos.length} registros cargados y sincronizados en la Nube.`);
+                        alert(`¡Éxito! ${baseDatosVecinos.length} registros cargados y sincronizados en la Base de Datos.`);
                     } else {
                         throw new Error(JSON.stringify(result.error));
                     }
@@ -598,7 +604,8 @@
             let tbPrev = document.getElementById('tbody-preview');
             let selPago = document.getElementById('select-apto-pago');
             
-            tbDash.innerHTML = ''; tbHist.innerHTML = ''; tbPrev.innerHTML = ''; selPago.innerHTML = '<option value="">-- Seleccione Apto --</option>';
+            tbDash.innerHTML = ''; tbHist.innerHTML = ''; tbPrev.innerHTML = ''; 
+            selPago.innerHTML = '<option value="">-- Seleccione Apto --</option>';
             
             let deudaGlobal = 0, recaudado = 0, morosos = 0;
 
@@ -607,7 +614,7 @@
                 let cuotaAplicada = (arrastre > 0 || CUOTA_BASE > 0) ? CUOTA_BASE : 0; 
                 let deudaFinal = arrastre + cuotaAplicada - (v.abono || 0);
                 
-                // CORRECCIÓN VITAL: Redondeo exacto a 2 decimales para matar errores de coma flotante (ej: 0.0000001)
+                // Redondeo matemático estricto para evitar fantasmas decimales y garantizar Solvente exacto
                 deudaFinal = Math.round(deudaFinal * 100) / 100;
                 
                 if (deudaFinal < 0) deudaFinal = 0; // Evitar deudas negativas visualmente
@@ -616,12 +623,11 @@
                 recaudado += v.abono || 0;
                 
                 let isConvenio = v.nombre.includes(" (CONVENIO)");
-                let nombreDisplay = v.nombre.replace(" (CONVENIO)", ""); // Nombre limpio para interfaz
+                let nombreDisplay = v.nombre.replace(" (CONVENIO)", ""); // Limpiamos nombre para UI
                 
                 let estadoHtml = '';
                 let estadoTexto = '';
                 
-                // REGLA CRÍTICA MATEMÁTICA: Si es 0 exacto, es Solvente.
                 if (deudaFinal === 0) {
                     estadoHtml = '<span class="bg-green-100 text-green-800 px-2 py-1 rounded font-bold border border-green-200 text-[10px] uppercase">Solvente</span>';
                     estadoTexto = 'Solvente';
@@ -631,10 +637,11 @@
                 } else {
                     estadoHtml = '<span class="bg-red-100 text-red-800 px-2 py-1 rounded font-bold border border-red-200 text-[10px] uppercase">Moroso</span>';
                     estadoTexto = 'Moroso';
-                    morosos++; // El KPI solo cuenta los morosos que no tienen convenio
+                    morosos++; 
                 }
 
-                tbDash.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-3 font-bold">${v.apto}</td><td class="p-3 text-sm">${nombreDisplay}</td><td class="p-3 text-center">${estadoHtml}</td><td class="p-3 text-right font-bold text-gray-700">$${deudaFinal.toFixed(2)}</td><td class="p-3 text-center no-print"><div class="flex justify-center space-x-2"><button onclick="armarRecibo('${v.apto}', '${nombreDisplay}', ${v.abono || 0}, ${v.y22}, ${v.y23}, ${v.y24}, ${v.y25}, ${v.y26_em}, ${deudaFinal})" class="bg-gray-100 border px-3 py-1 rounded hover:bg-gray-200 text-gray-700 transition shadow-sm" title="Imprimir Recibo"><i class="fas fa-print"></i></button><button onclick="toggleConvenio('${v.apto}')" class="${isConvenio ? 'bg-yellow-100 border-yellow-300 text-yellow-700 hover:bg-yellow-200' : 'bg-gray-100 border-gray-200 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'} border px-3 py-1 rounded transition shadow-sm" title="Marcar/Desmarcar Convenio de Pago"><i class="fas fa-handshake"></i></button></div></td></tr>`;
+                // Generar filas
+                tbDash.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-3 font-bold">${v.apto}</td><td class="p-3 text-sm">${nombreDisplay}</td><td class="p-3 text-center col-estado-dash">${estadoHtml}</td><td class="p-3 text-right font-bold text-gray-700">$${deudaFinal.toFixed(2)}</td><td class="p-3 text-center no-print"><div class="flex justify-center space-x-2"><button onclick="armarRecibo('${v.apto}', '${nombreDisplay}', ${v.abono || 0}, ${v.y22}, ${v.y23}, ${v.y24}, ${v.y25}, ${v.y26_em}, ${deudaFinal})" class="bg-gray-100 border px-3 py-1 rounded hover:bg-gray-200 text-gray-700 transition shadow-sm" title="Imprimir Recibo"><i class="fas fa-print"></i></button><button onclick="toggleConvenio('${v.apto}')" class="${isConvenio ? 'bg-yellow-100 border-yellow-300 text-yellow-700 hover:bg-yellow-200' : 'bg-gray-100 border-gray-200 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'} border px-3 py-1 rounded transition shadow-sm" title="Marcar/Desmarcar Convenio de Pago"><i class="fas fa-handshake"></i></button></div></td></tr>`;
                 
                 tbHist.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-2 font-bold">${v.apto}</td><td class="p-2 text-xs truncate max-w-[120px]" title="${nombreDisplay}">${nombreDisplay}</td><td class="p-2 text-right">$${v.y22.toFixed(2)}</td><td class="p-2 text-right">$${v.y23.toFixed(2)}</td><td class="p-2 text-right">$${v.y24.toFixed(2)}</td><td class="p-2 text-right">$${v.y25.toFixed(2)}</td><td class="p-2 text-right">$${v.y26_em.toFixed(2)}</td><td class="p-2 text-right text-blue-900 bg-blue-50/50 font-bold">$${cuotaAplicada.toFixed(2)}</td><td class="p-2 text-right text-green-700 bg-green-50/50 font-medium">$${(v.abono || 0).toFixed(2)}</td><td class="p-2 text-right font-bold ${deudaFinal>0 && !isConvenio ? 'text-red-600' : (isConvenio ? 'text-yellow-600' : 'text-gray-800')}">$${deudaFinal.toFixed(2)}</td></tr>`;
                 
@@ -643,33 +650,31 @@
                 selPago.innerHTML += `<option value="${v.apto}">${v.apto} - ${nombreDisplay}</option>`;
             });
 
+            // Actualizar KPIs
             document.getElementById('kpi-deuda').innerText = '$' + deudaGlobal.toLocaleString('en-US', {minimumFractionDigits: 2});
             document.getElementById('kpi-recaudado').innerText = '$' + recaudado.toLocaleString('en-US', {minimumFractionDigits: 2});
             document.getElementById('kpi-morosos').innerText = morosos;
             
             document.getElementById('gran-total-historico').innerText = '$' + deudaGlobal.toLocaleString('en-US', {minimumFractionDigits: 2});
             document.getElementById('tfoot-historico').classList.remove('hidden');
-            
-            // Re-aplicar el filtro de estado en la tabla de reportes si el usuario acaba de registrar un pago
-            if (typeof aplicarFiltroEstado === 'function') {
-                aplicarFiltroEstado();
-            }
+
+            // Reaplicar filtros automáticamente si hay alguno activo
+            if (typeof aplicarFiltroEstado === 'function') aplicarFiltroEstado();
+            if (typeof filtrarDashboard === 'function') filtrarDashboard();
         }
 
         async function toggleConvenio(apto) {
             let vecino = baseDatosVecinos.find(v => v.apto === apto);
             if (!vecino) return;
             
-            // Alternamos la etiqueta " (CONVENIO)" de forma oculta en el nombre
             if (vecino.nombre.includes(" (CONVENIO)")) {
                 vecino.nombre = vecino.nombre.replace(" (CONVENIO)", "");
             } else {
                 vecino.nombre += " (CONVENIO)";
             }
             
-            actualizarTodasLasVistas(); // Actualiza la UI al instante (Amarillo)
+            actualizarTodasLasVistas(); // Instant UI update
             
-            // Enviamos un micro-update a Supabase solo para este apartamento
             try {
                 await fetch('/api/importarHistorico', {
                     method: 'POST',
@@ -683,10 +688,9 @@
 
         function armarRecibo(apto, nombre, abono, d22, d23, d24, d25, d26, deudaFinal) {
             document.getElementById('r-apto').innerText = apto;
-            document.getElementById('r-nombre').innerText = nombre; // Viene limpio de (CONVENIO)
-            const tasa = parseFloat(document.getElementById('config-tasa').value) || 667.05;
+            document.getElementById('r-nombre').innerText = nombre; // Viene limpio
+            const tasa = parseFloat(document.getElementById('config-tasa').value) || 0;
 
-            // Llenar tabla interna del recibo con los gastos actuales configurados
             let tbGastos = document.getElementById('tbody-recibo-gastos');
             let tfGastos = document.getElementById('tfoot-recibo-gastos');
             tbGastos.innerHTML = '';
@@ -703,16 +707,16 @@
             let fondoCuotaBs = totalCuotaBs * 0.15;
             let granTotalBs = totalMontoBs + fondoBs;
             let totalPagarBs = totalCuotaBs + fondoCuotaBs;
+            let cuotaBaseLocalUSD = tasa > 0 ? (totalPagarBs/tasa) : 0;
             
             tfGastos.innerHTML = `
                 <tr><td colspan="2" class="p-1 border-r border-gray-800 text-right">TOTAL GASTOS COMUNES</td><td class="p-1 border-r border-gray-800 text-right">${totalMontoBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td><td class="p-1 text-right">${totalCuotaBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>
                 <tr class="text-blue-800"><td colspan="2" class="p-1 border-r border-gray-800 text-right">FONDO ANTI INFLACIONARIO (15%)</td><td class="p-1 border-r border-gray-800 text-right">${fondoBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td><td class="p-1 text-right">${fondoCuotaBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>
                 <tr class="bg-gray-200 text-gray-900 text-[12px]"><td colspan="2" class="p-1 border-r border-gray-800 text-right">TOTAL GASTOS</td><td class="p-1 border-r border-gray-800 text-right">${granTotalBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td><td class="p-1 text-right">${totalPagarBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>
                 <tr class="bg-gray-300 text-black text-[13px]"><td colspan="3" class="p-1 text-right font-black border-r border-gray-800">TOTAL A PAGAR BOLIVARES (MES)</td><td class="p-1 text-right font-black">${totalPagarBs.toLocaleString('es-VE',{minimumFractionDigits:2})}</td></tr>
-                <tr class="bg-blue-100 text-blue-900 text-[13px]"><td colspan="3" class="p-1 text-right font-black border-r border-blue-300">TOTAL A PAGAR DOLARES (CUOTA BASE)</td><td class="p-1 text-right font-black">$${(totalPagarBs/tasa).toFixed(2)}</td></tr>
+                <tr class="bg-blue-100 text-blue-900 text-[13px]"><td colspan="3" class="p-1 text-right font-black border-r border-blue-300">TOTAL A PAGAR DOLARES (CUOTA BASE)</td><td class="p-1 text-right font-black">$${cuotaBaseLocalUSD.toFixed(2)}</td></tr>
             `;
 
-            // Deuda Individual del Apartamento seleccionado
             let arrastre = d22 + d23 + d24 + d25 + d26;
             document.getElementById('r-d22').innerText = '$' + d22.toFixed(2);
             document.getElementById('r-d23').innerText = '$' + d23.toFixed(2);
@@ -723,14 +727,13 @@
             document.getElementById('r-abono').innerText = '-$' + abono.toFixed(2);
             
             document.getElementById('r-total-usd').innerText = '$' + deudaFinal.toFixed(2);
-            document.getElementById('r-total-bs').innerText = 'Equiv. Bs. ' + (deudaFinal * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2});
+            document.getElementById('r-total-bs').innerText = tasa > 0 ? ('Equiv. Bs. ' + (deudaFinal * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})) : 'Tasa no definida';
 
             document.getElementById('modal-recibo').classList.remove('hidden');
         }
 
         function cerrarRecibo() { document.getElementById('modal-recibo').classList.add('hidden'); }
 
-        // FUNCIONES DE PAGOS (RADAR Y AUTOCOMPLETAR)
         let deudaActualSeleccionada = 0;
 
         function mostrarDeudaPago() {
@@ -742,6 +745,7 @@
                 badge.classList.add('hidden');
                 deudaActualSeleccionada = 0;
                 document.getElementById('pago-monto').value = '';
+                document.getElementById('pago-equivalencia').innerText = 'Equivalente: Bs. 0.00';
                 return;
             }
 
@@ -750,8 +754,6 @@
                 let arrastre = vecino.y22 + vecino.y23 + vecino.y24 + vecino.y25 + vecino.y26_em;
                 let cuotaAplicada = (arrastre > 0 || CUOTA_BASE > 0) ? CUOTA_BASE : 0; 
                 deudaActualSeleccionada = arrastre + cuotaAplicada - (vecino.abono || 0);
-                
-                // CORRECCIÓN VITAL: Redondeo exacto a 2 decimales
                 deudaActualSeleccionada = Math.round(deudaActualSeleccionada * 100) / 100;
                 
                 if(deudaActualSeleccionada < 0) deudaActualSeleccionada = 0;
@@ -781,9 +783,67 @@
 
         function calcularEquivalenciaPago() {
             const monto = parseFloat(document.getElementById('pago-monto').value) || 0;
-            const tasa = parseFloat(document.getElementById('config-tasa').value) || 667.05;
+            const tasa = parseFloat(document.getElementById('config-tasa').value) || 0;
             const equivalenteBs = monto * tasa;
             document.getElementById('pago-equivalencia').innerText = `Equivalente: Bs. ${equivalenteBs.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+
+        async function procesarPago(e) { 
+            e.preventDefault(); 
+            const btn = document.getElementById('btn-guardar-pago');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Procesando...';
+
+            const apto = document.getElementById('select-apto-pago').value;
+            const monto = parseFloat(document.getElementById('pago-monto').value);
+            const fecha = document.getElementById('pago-fecha').value;
+            const banco = document.getElementById('pago-banco').value;
+            const ref = document.getElementById('pago-ref').value;
+            const referenciaFinal = `${banco} - Ref: ${ref}`;
+
+            if (!apto) {
+                alert("Por favor, seleccione un apartamento válido.");
+                btn.disabled = false; btn.innerText = "Procesar y Guardar Pago";
+                return;
+            }
+
+            try {
+                // Guarda en tabla de Pagos
+                const response = await fetch('/api/addPago', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apartamento: apto, monto: monto, fecha: fecha, referencia: referenciaFinal })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Actualiza BD local en memoria y dispara render UI
+                    let vecino = baseDatosVecinos.find(v => v.apto === apto);
+                    if (vecino) {
+                        vecino.abono = (vecino.abono || 0) + monto;
+                    }
+                    actualizarTodasLasVistas();
+                    mostrarDeudaPago(); 
+                    
+                    alert(`¡PAGO EXITOSO! Se ha abonado $${monto.toFixed(2)} al apartamento ${apto}. Saldo actualizado.`);
+                    
+                    document.getElementById('pago-monto').value = '';
+                    document.getElementById('pago-banco').value = '';
+                    document.getElementById('pago-ref').value = '';
+                    document.getElementById('select-apto-pago').value = '';
+                    document.getElementById('pago-equivalencia').innerText = 'Equivalente: Bs. 0.00';
+                    mostrarDeudaPago();
+                } else {
+                    throw new Error("Error procesando el pago");
+                }
+            } catch (error) {
+                console.error("Error BD:", error);
+                alert("Hubo un fallo de conexión. Asegúrate de que las credenciales estén correctas.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Procesar y Guardar Pago";
+            }
         }
 
         function filtrarDashboard() {
@@ -799,23 +859,11 @@
                     let aptoValue = tdApto.textContent || tdApto.innerText;
                     let estadoValue = tdEstado.textContent.toLowerCase().trim();
                     
-                    // Buscar coincidencia de texto SOLO en la columna de Apartamento (tdApto)
                     let matchApto = aptoValue.toLowerCase().indexOf(filterText) > -1;
-                    // Buscar coincidencia en el menú desplegable de Estado
                     let matchEstado = filterEstado === 'todos' || estadoValue === filterEstado;
                     
-                    // Si cumple ambas condiciones, se muestra. Si no, se oculta.
                     trs[i].style.display = (matchApto && matchEstado) ? "" : "none";
                 }
-            }
-        }
-
-        function filtrarTabla(inputId, tbodyId) {
-            let filter = document.getElementById(inputId).value.toLowerCase();
-            let tr = document.getElementById(tbodyId).getElementsByTagName('tr');
-            for (let i = 0; i < tr.length; i++) {
-                let txt = tr[i].textContent || tr[i].innerText;
-                tr[i].style.display = txt.toLowerCase().indexOf(filter) > -1 ? "" : "none";
             }
         }
 
@@ -825,17 +873,13 @@
             let tr = tbody.getElementsByTagName('tr');
             
             for (let i = 0; i < tr.length; i++) {
-                // Seleccionamos solo la primera columna (índice 0) que es el "Apto"
+                // Filtra EXCLUSIVAMENTE por la columna [0] = Apto
                 let tdApto = tr[i].getElementsByTagName('td')[0];
                 if (tdApto) {
                     let txtValue = tdApto.textContent || tdApto.innerText;
                     tr[i].style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? "" : "none";
                 }
             }
-        }
-
-        function descargarPDF(elementId, filename, format = 'portrait') {
-            html2pdf().set({ margin: 10, filename: filename + '.pdf', jsPDF: { unit: 'mm', format: 'a4', orientation: format } }).from(document.getElementById(elementId)).save();
         }
 
         ['apto', 'nombre', 'estado', 'deuda'].forEach(col => {
@@ -848,25 +892,42 @@
         function aplicarFiltroEstado() {
             let filtro = document.getElementById('filtro-estado-reporte').value;
             let trs = document.querySelectorAll('#tbody-preview tr');
+            let sumaTotal = 0;
             
             trs.forEach(tr => {
-                // Buscamos la columna de Estado dentro de cada fila
                 let tdEstado = tr.querySelector('.col-estado-view');
+                let tdDeuda = tr.querySelector('.col-deuda-view');
+                
                 if (tdEstado) {
                     let estado = tdEstado.textContent.toLowerCase().trim();
+                    let show = false;
+
                     if (filtro === 'todos') {
-                        tr.style.display = '';
+                        show = true;
                     } else if (filtro === 'solvente' && estado === 'solvente') {
-                        tr.style.display = '';
+                        show = true;
                     } else if (filtro === 'moroso' && estado === 'moroso') {
-                        tr.style.display = '';
+                        show = true;
                     } else if (filtro === 'convenio' && estado === 'convenio') {
-                        tr.style.display = '';
-                    } else {
-                        tr.style.display = 'none'; // Oculta los que no coinciden con el selector
+                        show = true;
+                    }
+                    
+                    tr.style.display = show ? '' : 'none';
+
+                    if (show && tdDeuda) {
+                        let montoStr = tdDeuda.textContent.replace('$', '').replace(/,/g, '');
+                        sumaTotal += parseFloat(montoStr) || 0;
                     }
                 }
             });
+
+            // Actualizamos totalizador del reporte
+            const tfootTotal = document.getElementById('total-deuda-reporte');
+            if (tfootTotal) tfootTotal.innerText = '$' + sumaTotal.toLocaleString('en-US', {minimumFractionDigits: 2});
+        }
+
+        function descargarPDF(elementId, filename, format = 'portrait') {
+            html2pdf().set({ margin: 10, filename: filename + '.pdf', jsPDF: { unit: 'mm', format: 'a4', orientation: format } }).from(document.getElementById(elementId)).save();
         }
 
         function exportarReporte(tipo) {
@@ -879,9 +940,7 @@
                 let rows = document.querySelectorAll("#tabla-preview tr");
                 
                 for (let i = 0; i < rows.length; i++) {
-                    // Ignorar estrictamente las filas que estén ocultas por el filtro de moroso/solvente
-                    if (rows[i].style.display === 'none') continue;
-                    
+                    if (rows[i].style.display === 'none') continue; // Respeta el filtro
                     let row = [], cols = rows[i].querySelectorAll("td:not([style*='display: none']), th:not([style*='display: none'])");
                     for (let j = 0; j < cols.length; j++) 
                         row.push('"' + cols[j].innerText.replace(/"/g, '""').replace(/\$/g, '') + '"');
@@ -895,70 +954,6 @@
                 downloadLink.style.display = "none";
                 document.body.appendChild(downloadLink);
                 downloadLink.click();
-            }
-        }
-
-        async function procesarPago(e) { 
-            e.preventDefault(); 
-            
-            const btn = document.getElementById('btn-guardar-pago');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Procesando...';
-
-            const apto = document.getElementById('select-apto-pago').value;
-            const monto = parseFloat(document.getElementById('pago-monto').value);
-            const fecha = document.getElementById('pago-fecha').value;
-            const banco = document.getElementById('pago-banco').value;
-            const ref = document.getElementById('pago-ref').value;
-            
-            const referenciaFinal = `${banco} - Ref: ${ref}`;
-
-            if (!apto) {
-                alert("Por favor, seleccione un apartamento válido.");
-                btn.disabled = false; btn.innerText = "Procesar y Guardar Pago";
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/addPago', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        apartamento: apto, 
-                        monto: monto, 
-                        fecha: fecha, 
-                        referencia: referenciaFinal 
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    let vecino = baseDatosVecinos.find(v => v.apto === apto);
-                    if (vecino) {
-                        vecino.abono = (vecino.abono || 0) + monto;
-                    }
-                    
-                    actualizarTodasLasVistas();
-                    mostrarDeudaPago(); 
-                    
-                    alert(`¡PAGO EXITOSO! Se ha abonado $${monto.toFixed(2)} al apartamento ${apto}. Saldo actualizado.`);
-                    
-                    document.getElementById('pago-monto').value = '';
-                    document.getElementById('pago-banco').value = '';
-                    document.getElementById('pago-ref').value = '';
-                    document.getElementById('select-apto-pago').value = '';
-                    document.getElementById('pago-equivalencia').innerText = 'Equivalente: Bs. 0.00';
-                    mostrarDeudaPago();
-                } else {
-                    throw new Error(result.error?.message || "Error procesando el pago en Supabase.");
-                }
-            } catch (error) {
-                console.error("Error BD:", error);
-                alert("Hubo un fallo de conexión. Asegúrate de que las credenciales de Supabase en Vercel estén correctas.");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Procesar y Guardar Pago";
             }
         }
 
@@ -984,12 +979,29 @@
             }
         }
 
-        // Inicializar UI al cargar
+        async function obtenerTasaBCV() {
+            try {
+                // Conexión oficial diaria DolarAPI
+                const response = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
+                if(response.ok) {
+                    const data = await response.json();
+                    if(data.promedio) {
+                        document.getElementById('config-tasa').value = data.promedio;
+                        actualizarGastosUI(); // Refresca equivalencias
+                    }
+                }
+            } catch(error) {
+                console.warn("Fallo API Dólar, usando valor manual guardado.");
+                actualizarGastosUI(); 
+            }
+        }
+
+        // Auto-arranque
         window.onload = () => { 
-            actualizarGastosUI(); 
+            obtenerTasaBCV(); 
             cargarDesdeNube();
             
-            // Autocompletar la fecha del formulario de pagos
+            // Set Fecha Hoy
             const hoy = new Date();
             const tzoffset = (new Date()).getTimezoneOffset() * 60000;
             const fechaLocal = (new Date(hoy - tzoffset)).toISOString().split('T')[0];
